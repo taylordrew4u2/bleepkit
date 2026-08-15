@@ -49,6 +49,9 @@ private struct EditorContentView: View {
     var body: some View {
         VStack(spacing: 12) {
             previewArea
+            if viewModel.project.overlayEnabled && !viewModel.project.overlayFollowsCaption {
+                stickerPlacementHint
+            }
             transportControls
         }
         .padding(.bottom, 8)
@@ -140,6 +143,15 @@ private struct EditorContentView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .clipped()
+    }
+
+    /// Surfaces the otherwise-invisible tap-to-place gesture, and points
+    /// VoiceOver users at the slider equivalent in the Censoring screen.
+    private var stickerPlacementHint: some View {
+        Label("Tap the video to place the sticker", systemImage: "hand.tap")
+            .font(.footnote)
+            .foregroundStyle(.secondary)
+            .accessibilityHint("Sticker position sliders are available on the Censoring screen.")
     }
 
     /// Drag on the preview to pin the overlay sticker there. The video is

@@ -39,6 +39,29 @@ struct CensorStyleView: View {
                 Text("The censored word keeps its place in the line — only how it looks changes.")
             }
 
+            if viewModel.project.overlayEnabled && !viewModel.project.overlayFollowsCaption {
+                Section {
+                    SliderRow(
+                        title: "Horizontal",
+                        value: overlayPositionXBinding,
+                        range: 0...1,
+                        step: 0.01,
+                        format: { String(format: "%.0f%%", $0 * 100) }
+                    )
+                    SliderRow(
+                        title: "Vertical",
+                        value: overlayPositionYBinding,
+                        range: 0...1,
+                        step: 0.01,
+                        format: { String(format: "%.0f%%", $0 * 100) }
+                    )
+                } header: {
+                    Text("Sticker position")
+                } footer: {
+                    Text("Measured from the top-left of the video. You can also tap the video preview to place the sticker.")
+                }
+            }
+
             Section {
                 SliderRow(
                     title: "Beep tone",
@@ -104,6 +127,22 @@ struct CensorStyleView: View {
                 case .emoji: viewModel.setCensorStyle(.emoji(emojiChoices[0]))
                 }
             }
+        )
+    }
+
+    /// Slider equivalents of the tap-to-place gesture, so the sticker can be
+    /// positioned with VoiceOver and Switch Control.
+    private var overlayPositionXBinding: Binding<Double> {
+        Binding(
+            get: { viewModel.project.overlayPositionX },
+            set: { viewModel.setOverlayPosition(x: $0, y: viewModel.project.overlayPositionY) }
+        )
+    }
+
+    private var overlayPositionYBinding: Binding<Double> {
+        Binding(
+            get: { viewModel.project.overlayPositionY },
+            set: { viewModel.setOverlayPosition(x: viewModel.project.overlayPositionX, y: $0) }
         )
     }
 
