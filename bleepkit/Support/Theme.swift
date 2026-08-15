@@ -19,7 +19,10 @@ import UIKit
 extension Color {
     /// The single accent — proofreader red (asset: AccentColor). Marks
     /// anything censored or interactive; also drives the app-wide tint.
-    static let bleepAccent = Color.accentColor
+    /// Read straight from the asset: on iOS 26 the NSAccentColorName
+    /// route was observed resolving to default blue at runtime, so the
+    /// app applies this as an explicit root tint instead.
+    static let bleepAccent = Color("AccentColor")
     /// Dimming layer between the video and full-screen state overlays
     /// (asset: VideoScrim).
     static let bleepScrim = Color(.videoScrim)

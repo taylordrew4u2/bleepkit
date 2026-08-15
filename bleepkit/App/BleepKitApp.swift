@@ -46,17 +46,23 @@ struct BleepKitApp: App {
 
     var body: some Scene {
         WindowGroup {
-            switch bootstrap {
-            case .success(let environment):
-                RootView()
-                    .environment(environment)
-                    .modelContainer(environment.modelContainer)
-            case .failure(let error):
-                ErrorStateView(
-                    title: "BleepKit Could Not Start",
-                    message: error.localizedDescription
-                )
+            Group {
+                switch bootstrap {
+                case .success(let environment):
+                    RootView()
+                        .environment(environment)
+                        .modelContainer(environment.modelContainer)
+                case .failure(let error):
+                    ErrorStateView(
+                        title: "BleepKit Could Not Start",
+                        message: error.localizedDescription
+                    )
+                }
             }
+            // Explicit root tint: the AccentColor asset alone isn't honored
+            // at runtime on iOS 26 (verified in the simulator), so every
+            // tinted control takes the accent from here.
+            .tint(.bleepAccent)
         }
     }
 }
