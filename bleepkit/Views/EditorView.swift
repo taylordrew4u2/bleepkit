@@ -98,9 +98,43 @@ private struct EditorContentView: View {
                     }
                     .background(.black.opacity(0.6))
                 } else if !viewModel.previewReady {
-                    ProgressView()
-                        .controlSize(.large)
-                        .tint(.white)
+                    // Without a preview there is nothing usable on screen, so
+                    // a stalled transcription must explain itself here — not
+                    // only in the Transcript screen.
+                    switch viewModel.transcriptionState {
+                    case .permissionDenied:
+                        PermissionDeniedView(
+                            title: "Speech Recognition Is Off",
+                            message: "BleepKit transcribes on this device only — audio never leaves your iPhone. Allow Speech Recognition in Settings to continue."
+                        )
+                        .background(.black.opacity(0.6))
+                        .environment(\.colorScheme, .dark)
+                    case .failed(let message):
+                        ErrorStateView(title: "Transcription Failed", message: message) {
+                            viewModel.transcribe()
+                        }
+                        .background(.black.opacity(0.6))
+                        .environment(\.colorScheme, .dark)
+                    case .idle:
+                        // Reached when the user cancels the first run.
+                        ContentUnavailableView {
+                            Label("Not Transcribed", systemImage: "waveform")
+                        } description: {
+                            Text("Transcribe the video to detect words to censor.")
+                        } actions: {
+                            Button("Transcribe") {
+                                viewModel.transcribe()
+                            }
+                            .buttonStyle(.borderedProminent)
+                        }
+                        .background(.black.opacity(0.6))
+                        .environment(\.colorScheme, .dark)
+                    case .working, .ready:
+                        // Transcript in hand; the composition is still building.
+                        ProgressView()
+                            .controlSize(.large)
+                            .tint(.white)
+                    }
                 }
             }
         }
