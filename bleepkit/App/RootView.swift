@@ -9,6 +9,10 @@ import SwiftUI
 struct RootView: View {
     @Environment(AppEnvironment.self) private var environment
     @State private var importViewModel: ImportViewModel?
+    /// A movie handed over before the view model exists — `onOpenURL` can
+    /// fire before `.task` on a cold launch. Replayed once the view model
+    /// is created so the open-in path is never silently dropped.
+    @State private var pendingImportURL: URL?
 
     var body: some View {
         NavigationStack {
@@ -28,12 +32,24 @@ struct RootView: View {
             if importViewModel == nil {
                 importViewModel = ImportViewModel(environment: environment)
             }
+            if let url = pendingImportURL {
+                pendingImportURL = nil
+                startImport(of: url)
+            }
         }
         .onOpenURL { url in
-            importViewModel?.importFile(
-                at: url,
-                suggestedTitle: url.deletingPathExtension().lastPathComponent
-            )
+            if importViewModel == nil {
+                pendingImportURL = url
+            } else {
+                startImport(of: url)
+            }
         }
+    }
+
+    private func startImport(of url: URL) {
+        importViewModel?.importFile(
+            at: url,
+            suggestedTitle: url.deletingPathExtension().lastPathComponent
+        )
     }
 }
