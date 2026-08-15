@@ -119,10 +119,10 @@ private struct ProjectRowView: View {
     let project: Project
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 2) {
+        VStack(alignment: .leading, spacing: Spacing.hairline) {
             Text(project.title)
             Text("\(project.durationSeconds.timecodeString) · \(project.createdAt.formatted(date: .abbreviated, time: .shortened))")
-                .font(.caption)
+                .font(.bleepMetadata)
                 .foregroundStyle(.secondary)
         }
     }
@@ -143,7 +143,7 @@ private struct SourceDetailsView: View {
                 LabeledContent("Oriented size", value: sizeText(source.metadata.displaySize))
                 LabeledContent("Frame rate", value: String(format: "%.2f fps", source.metadata.nominalFrameRate))
                 LabeledContent("Stored as", value: source.project.sourceFileName)
-                    .font(.caption)
+                    .font(.bleepMetadata)
             }
             Section("Audio") {
                 if let audioURL = source.extractedAudioURL {

@@ -79,7 +79,7 @@ final class PlayerContainerView: UIView {
     }
 
     private func commonInit() {
-        backgroundColor = .black
+        backgroundColor = .bleepVideoBackdrop
         playerLayer.videoGravity = .resizeAspect
         layer.addSublayer(playerLayer)
     }

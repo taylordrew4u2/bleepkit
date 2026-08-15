@@ -65,11 +65,11 @@ struct ExportView: View {
                 .buttonStyle(.borderedProminent)
             }
         case .exporting(let fraction):
-            VStack(spacing: 16) {
+            VStack(spacing: Spacing.medium) {
                 ProgressView(value: fraction)
-                    .padding(.horizontal, 32)
+                    .padding(.horizontal, Spacing.wide)
                 Text("Exporting… \(Int((fraction * 100).rounded()))%")
-                    .font(.headline)
+                    .font(.bleepEmphasis)
                     .monospacedDigit()
                 Button("Cancel", role: .cancel) {
                     viewModel.cancel()
@@ -85,7 +85,7 @@ struct ExportView: View {
                 url: url
             )
         case .photosDenied(let url):
-            VStack(spacing: 24) {
+            VStack(spacing: Spacing.roomy) {
                 PermissionDeniedView(
                     title: "Can't Save to Photos",
                     message: "BleepKit isn't allowed to add videos to your Photo Library. Allow it in Settings, or share the file directly."
@@ -94,7 +94,7 @@ struct ExportView: View {
                     Label("Share Video", systemImage: "square.and.arrow.up")
                 }
                 .buttonStyle(.borderedProminent)
-                .padding(.bottom, 24)
+                .padding(.bottom, Spacing.roomy)
             }
         case .failed(let message):
             ErrorStateView(title: "Export Failed", message: message, retryTitle: "Try Again") {
@@ -106,15 +106,15 @@ struct ExportView: View {
     private func successView(title: String, message: String, url: URL) -> some View {
         VStack(spacing: 16) {
             Image(systemName: "checkmark.circle.fill")
-                .font(.system(size: 56))
+                .font(.bleepResultGlyph)
                 .foregroundStyle(.green)
             Text(title)
                 .font(.title2.bold())
             Text(message)
-                .font(.callout)
+                .font(.bleepDetail)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
-                .padding(.horizontal, 32)
+                .padding(.horizontal, Spacing.wide)
             ShareLink(item: url) {
                 Label("Share Video", systemImage: "square.and.arrow.up")
             }

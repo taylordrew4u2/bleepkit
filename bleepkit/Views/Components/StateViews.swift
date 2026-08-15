@@ -13,11 +13,11 @@ struct LoadingStateView: View {
     var onCancel: (() -> Void)?
 
     var body: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: Spacing.medium) {
             ProgressView()
                 .controlSize(.large)
             Text(message)
-                .font(.headline)
+                .font(.bleepEmphasis)
                 .multilineTextAlignment(.center)
             if let onCancel {
                 Button("Cancel", role: .cancel, action: onCancel)

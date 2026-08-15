@@ -47,14 +47,14 @@ private struct EditorContentView: View {
     @State private var showsExportSheet = false
 
     var body: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: Spacing.standard) {
             previewArea
             if viewModel.project.overlayEnabled && !viewModel.project.overlayFollowsCaption {
                 stickerPlacementHint
             }
             transportControls
         }
-        .padding(.bottom, 8)
+        .padding(.bottom, Spacing.compact)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 settingsMenu
@@ -94,12 +94,12 @@ private struct EditorContentView: View {
                     LoadingStateView(message: step) {
                         viewModel.cancelTranscription()
                     }
-                    .background(.black.opacity(0.6))
+                    .background(Color.bleepScrim)
                 } else if let previewError = viewModel.previewError {
                     ErrorStateView(title: "Preview Failed", message: previewError) {
                         viewModel.refreshPreview()
                     }
-                    .background(.black.opacity(0.6))
+                    .background(Color.bleepScrim)
                 } else if !viewModel.previewReady {
                     // Without a preview there is nothing usable on screen, so
                     // a stalled transcription must explain itself here — not
@@ -110,13 +110,13 @@ private struct EditorContentView: View {
                             title: "Speech Recognition Is Off",
                             message: "BleepKit transcribes on this device only — audio never leaves your iPhone. Allow Speech Recognition in Settings to continue."
                         )
-                        .background(.black.opacity(0.6))
+                        .background(Color.bleepScrim)
                         .environment(\.colorScheme, .dark)
                     case .failed(let message):
                         ErrorStateView(title: "Transcription Failed", message: message) {
                             viewModel.transcribe()
                         }
-                        .background(.black.opacity(0.6))
+                        .background(Color.bleepScrim)
                         .environment(\.colorScheme, .dark)
                     case .idle:
                         // Reached when the user cancels the first run.
@@ -130,13 +130,13 @@ private struct EditorContentView: View {
                             }
                             .buttonStyle(.borderedProminent)
                         }
-                        .background(.black.opacity(0.6))
+                        .background(Color.bleepScrim)
                         .environment(\.colorScheme, .dark)
                     case .working, .ready:
                         // Transcript in hand; the composition is still building.
                         ProgressView()
                             .controlSize(.large)
-                            .tint(.white)
+                            .tint(.bleepOnVideo)
                     }
                 }
             }
@@ -149,7 +149,7 @@ private struct EditorContentView: View {
     /// VoiceOver users at the slider equivalent in the Censoring screen.
     private var stickerPlacementHint: some View {
         Label("Tap the video to place the sticker", systemImage: "hand.tap")
-            .font(.footnote)
+            .font(.bleepControlLabel)
             .foregroundStyle(.secondary)
             .accessibilityHint("Sticker position sliders are available on the Censoring screen.")
     }
@@ -186,7 +186,7 @@ private struct EditorContentView: View {
     // MARK: Transport
 
     private var transportControls: some View {
-        VStack(spacing: 8) {
+        VStack(spacing: Spacing.compact) {
             ScrubberView(
                 currentSeconds: viewModel.currentSeconds,
                 durationSeconds: viewModel.assetDurationSeconds,
@@ -194,7 +194,7 @@ private struct EditorContentView: View {
             )
             .padding(.horizontal)
 
-            HStack(spacing: 32) {
+            HStack(spacing: Spacing.wide) {
                 Button {
                     viewModel.stepFrames(-1)
                 } label: {
@@ -206,7 +206,7 @@ private struct EditorContentView: View {
                     viewModel.togglePlayback()
                 } label: {
                     Image(systemName: viewModel.isPlaying ? "pause.circle.fill" : "play.circle.fill")
-                        .font(.system(size: 44))
+                        .font(.bleepPlayGlyph)
                 }
                 .accessibilityLabel(viewModel.isPlaying ? "Pause" : "Play")
 
@@ -217,10 +217,10 @@ private struct EditorContentView: View {
                 }
                 .accessibilityLabel("Step forward one frame")
             }
-            .font(.title2)
+            .font(.bleepTransportGlyph)
             .disabled(!viewModel.previewReady)
 
-            HStack(spacing: 12) {
+            HStack(spacing: Spacing.standard) {
                 NavigationLink {
                     WordListView(viewModel: viewModel)
                 } label: {
@@ -239,7 +239,7 @@ private struct EditorContentView: View {
             }
             .buttonStyle(.bordered)
             .labelStyle(.titleAndIcon)
-            .font(.footnote)
+            .font(.bleepControlLabel)
         }
     }
 

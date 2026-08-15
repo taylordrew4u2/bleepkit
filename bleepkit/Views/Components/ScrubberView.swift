@@ -14,7 +14,7 @@ struct ScrubberView: View {
     let onScrub: (Double) -> Void
 
     var body: some View {
-        VStack(spacing: 4) {
+        VStack(spacing: Spacing.tight) {
             Slider(
                 value: Binding(
                     get: { min(currentSeconds, durationSeconds) },
@@ -29,7 +29,7 @@ struct ScrubberView: View {
                 Spacer()
                 Text(durationSeconds.timecodeString)
             }
-            .font(.caption.monospacedDigit())
+            .font(.bleepTimecode)
             .foregroundStyle(.secondary)
         }
     }

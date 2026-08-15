@@ -15,12 +15,12 @@ struct SliderRow: View {
     var format: (Double) -> String = { String(format: "%.2f", $0) }
 
     var body: some View {
-        VStack(spacing: 4) {
+        VStack(spacing: Spacing.tight) {
             HStack {
                 Text(title)
                 Spacer()
                 Text(format(value))
-                    .font(.callout.monospacedDigit())
+                    .font(.bleepDetailValue)
                     .foregroundStyle(.secondary)
             }
             if let step {

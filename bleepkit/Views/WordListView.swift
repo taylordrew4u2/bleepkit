@@ -148,29 +148,29 @@ private struct TokenRow: View {
     }
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: Spacing.standard) {
             Button {
                 viewModel.seekToToken(token)
             } label: {
-                HStack(spacing: 12) {
+                HStack(spacing: Spacing.standard) {
                     Image(systemName: token.isCensored ? "speaker.slash.fill" : "checkmark.circle")
-                        .foregroundStyle(token.isCensored ? Color.red : Color.secondary)
+                        .foregroundStyle(token.isCensored ? Color.bleepAccent : Color.secondary)
                         .accessibilityLabel(token.isCensored ? "Censored" : "Not censored")
-                    VStack(alignment: .leading, spacing: 2) {
+                    VStack(alignment: .leading, spacing: Spacing.hairline) {
                         Text(token.text)
-                            .foregroundStyle(token.isCensored ? .red : .primary)
+                            .foregroundStyle(token.isCensored ? Color.bleepAccent : .primary)
                         if token.userOverride != nil {
                             Text(token.userOverride == true ? "Always censored" : "Never censored")
-                                .font(.caption2)
+                                .font(.bleepFineprint)
                                 .foregroundStyle(.secondary)
                         }
                     }
                     Spacer()
-                    VStack(alignment: .trailing, spacing: 2) {
+                    VStack(alignment: .trailing, spacing: Spacing.hairline) {
                         Text(token.startSeconds.timecodeString)
-                            .font(.caption.monospacedDigit())
+                            .font(.bleepTimecode)
                         Text("\(Int((token.durationSeconds * 1000).rounded())) ms")
-                            .font(.caption2.monospacedDigit())
+                            .font(.bleepFineprintTimecode)
                             .foregroundStyle(.secondary)
                     }
                 }
