@@ -105,11 +105,13 @@ struct ExportView: View {
 
     private func successView(title: String, message: String, url: URL) -> some View {
         VStack(spacing: 16) {
+            // Monochrome result mark — the ink stamp; the accent stays
+            // reserved for censor marks.
             Image(systemName: "checkmark.circle.fill")
                 .font(.bleepResultGlyph)
-                .foregroundStyle(.green)
+                .foregroundStyle(.primary)
             Text(title)
-                .font(.title2.bold())
+                .font(.bleepMasthead)
             Text(message)
                 .font(.bleepDetail)
                 .foregroundStyle(.secondary)

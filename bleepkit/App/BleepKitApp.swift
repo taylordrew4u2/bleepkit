@@ -5,6 +5,7 @@
 
 import SwiftData
 import SwiftUI
+import UIKit
 
 /// Application entry point.
 ///
@@ -24,6 +25,23 @@ struct BleepKitApp: App {
             environment.tempFiles.purgeAndPrepare()
         }
         bootstrap = result
+        Self.applyMastheadNavigationTitles()
+    }
+
+    /// New York (serif) navigation titles — the app's masthead. Fonts are
+    /// derived from the preferred text styles so Dynamic Type keeps
+    /// driving their size.
+    private static func applyMastheadNavigationTitles() {
+        let bar = UINavigationBar.appearance()
+        if let descriptor = UIFont.preferredFont(forTextStyle: .headline)
+            .fontDescriptor.withDesign(.serif) {
+            bar.titleTextAttributes = [.font: UIFont(descriptor: descriptor, size: 0)]
+        }
+        if let descriptor = UIFont.preferredFont(forTextStyle: .largeTitle)
+            .fontDescriptor.withDesign(.serif)?
+            .withSymbolicTraits(.traitBold) {
+            bar.largeTitleTextAttributes = [.font: UIFont(descriptor: descriptor, size: 0)]
+        }
     }
 
     var body: some Scene {

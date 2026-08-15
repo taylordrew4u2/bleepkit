@@ -238,6 +238,7 @@ private struct EditorContentView: View {
                 }
             }
             .buttonStyle(.bordered)
+            .buttonBorderShape(.roundedRectangle(radius: Radius.control))
             .labelStyle(.titleAndIcon)
             .font(.bleepControlLabel)
         }
