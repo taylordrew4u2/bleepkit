@@ -45,6 +45,8 @@ struct EditorView: View {
 private struct EditorContentView: View {
     let viewModel: EditorViewModel
     @State private var showsExportSheet = false
+    @State private var showsCaptionsSheet = false
+    @State private var showsCensoringSheet = false
     @State private var dismissedLocaleNotice = false
     @ScaledMetric(relativeTo: .largeTitle) private var playGlyphSize = GlyphSize.play
 
@@ -80,9 +82,48 @@ private struct EditorContentView: View {
                     .accessibilityLabel("Export censored video")
                 }
             }
+            // The editor's destinations, at standard toolbar prominence
+            // instead of footnote-sized inline buttons (audit 5.4).
+            ToolbarItemGroup(placement: .bottomBar) {
+                NavigationLink {
+                    WordListView(viewModel: viewModel)
+                } label: {
+                    Label(transcriptLabel, systemImage: "text.quote")
+                }
+                Spacer()
+                Button {
+                    showsCaptionsSheet = true
+                } label: {
+                    Label("Captions", systemImage: "textformat")
+                }
+                Spacer()
+                Button {
+                    showsCensoringSheet = true
+                } label: {
+                    Label("Censoring", systemImage: "speaker.slash")
+                }
+            }
         }
         .sheet(isPresented: $showsExportSheet) {
             ExportView(editor: viewModel)
+        }
+        // Style editing keeps the preview visible and live: medium-detent
+        // sheets with the editor interactive behind them (audit 5.1).
+        .sheet(isPresented: $showsCaptionsSheet) {
+            NavigationStack {
+                CaptionStyleView(viewModel: viewModel)
+            }
+            .presentationDetents([.medium, .large])
+            .presentationBackgroundInteraction(.enabled(upThrough: .medium))
+            .presentationDragIndicator(.visible)
+        }
+        .sheet(isPresented: $showsCensoringSheet) {
+            NavigationStack {
+                CensorStyleView(viewModel: viewModel)
+            }
+            .presentationDetents([.medium, .large])
+            .presentationBackgroundInteraction(.enabled(upThrough: .medium))
+            .presentationDragIndicator(.visible)
         }
     }
 
@@ -280,27 +321,6 @@ private struct EditorContentView: View {
             .font(.bleepTransportGlyph)
             .disabled(!viewModel.previewReady)
 
-            HStack(spacing: Spacing.standard) {
-                NavigationLink {
-                    WordListView(viewModel: viewModel)
-                } label: {
-                    Label(transcriptLabel, systemImage: "text.quote")
-                }
-                NavigationLink {
-                    CaptionStyleView(viewModel: viewModel)
-                } label: {
-                    Label("Captions", systemImage: "textformat")
-                }
-                NavigationLink {
-                    CensorStyleView(viewModel: viewModel)
-                } label: {
-                    Label("Censoring", systemImage: "speaker.slash")
-                }
-            }
-            .buttonStyle(.bordered)
-            .buttonBorderShape(.roundedRectangle(radius: Radius.control))
-            .labelStyle(.titleAndIcon)
-            .font(.bleepControlLabel)
         }
     }
 
