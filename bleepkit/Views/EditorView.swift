@@ -46,6 +46,7 @@ private struct EditorContentView: View {
     let viewModel: EditorViewModel
     @State private var showsExportSheet = false
     @State private var dismissedLocaleNotice = false
+    @ScaledMetric(relativeTo: .largeTitle) private var playGlyphSize = GlyphSize.play
 
     var body: some View {
         VStack(spacing: Spacing.standard) {
@@ -249,7 +250,7 @@ private struct EditorContentView: View {
                     viewModel.togglePlayback()
                 } label: {
                     Image(systemName: viewModel.isPlaying ? "pause.circle.fill" : "play.circle.fill")
-                        .font(.bleepPlayGlyph)
+                        .font(.system(size: playGlyphSize))
                 }
                 .accessibilityLabel(viewModel.isPlaying ? "Pause" : "Play")
 

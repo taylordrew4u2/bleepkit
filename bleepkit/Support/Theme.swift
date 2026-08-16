@@ -100,10 +100,13 @@ extension Font {
     static let bleepControlLabel = Font.footnote
     /// Transport step buttons (icon sizing).
     static let bleepTransportGlyph = Font.title2
-    /// The primary play/pause glyph. Fixed size — does not follow
-    /// Dynamic Type (tracked as audit finding 6.5).
-    static let bleepPlayGlyph = Font.system(size: 44)
-    /// The export result mark. Fixed size — does not follow Dynamic Type
-    /// (tracked as audit finding 6.5).
-    static let bleepResultGlyph = Font.system(size: 56)
+}
+
+// MARK: - Glyph sizes
+
+/// Base sizes for oversized standalone glyphs. Consume through
+/// `@ScaledMetric` so they follow Dynamic Type (audit 6.5).
+enum GlyphSize {
+    /// The primary play/pause glyph.
+    static let play: CGFloat = 44
 }
