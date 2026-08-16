@@ -68,6 +68,9 @@ final class EditorViewModel {
     private let audioCensorBuilder: AudioCensorBuilder
     private var transcriptionTask: Task<Void, Never>?
     private var previewTask: Task<Void, Never>?
+    /// Coalesces slider ticks: rebuilding the composition per tick makes
+    /// the preview flash to a spinner mid-drag.
+    private var beepRefreshDebounce: Task<Void, Never>?
     /// Holds the player and its periodic time-observer token together so
     /// the (nonisolated) deinit can tear them down without touching
     /// main-actor state. Created once in init, invalidated in deinit.
@@ -397,7 +400,14 @@ final class EditorViewModel {
             Logger.storage.error("Failed to save beep settings: \(error.localizedDescription)")
             saveErrorMessage = error.localizedDescription
         }
-        refreshPreview()
+        // Saves are immediate; the expensive composition rebuild waits for
+        // the slider to settle (audit 2.6).
+        beepRefreshDebounce?.cancel()
+        beepRefreshDebounce = Task {
+            try? await Task.sleep(for: .milliseconds(350))
+            guard !Task.isCancelled else { return }
+            refreshPreview()
+        }
     }
 
     /// Pauses playback (used when the app leaves the foreground).
