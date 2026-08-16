@@ -206,6 +206,8 @@ private struct TokenRow: View {
             } label: {
                 Image(systemName: "slider.horizontal.3")
                     .foregroundStyle(.tint)
+                    .frame(minWidth: TapTarget.minimum, minHeight: TapTarget.minimum)
+                    .contentShape(Rectangle())
             }
             .accessibilityLabel("Censor override for \(token.text)")
         }

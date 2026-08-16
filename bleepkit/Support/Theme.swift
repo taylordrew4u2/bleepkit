@@ -60,6 +60,13 @@ enum Spacing {
     static let wide: CGFloat = 32
 }
 
+// MARK: - Tap targets
+
+/// Minimum hit-area for interactive elements, per the HIG.
+enum TapTarget {
+    static let minimum: CGFloat = 44
+}
+
 // MARK: - Corner radii
 
 /// Sharp, print-like geometry. Two values only.

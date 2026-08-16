@@ -240,6 +240,8 @@ private struct EditorContentView: View {
                     viewModel.stepFrames(-1)
                 } label: {
                     Image(systemName: "backward.frame")
+                        .frame(minWidth: TapTarget.minimum, minHeight: TapTarget.minimum)
+                        .contentShape(Rectangle())
                 }
                 .accessibilityLabel("Step back one frame")
 
@@ -255,6 +257,8 @@ private struct EditorContentView: View {
                     viewModel.stepFrames(1)
                 } label: {
                     Image(systemName: "forward.frame")
+                        .frame(minWidth: TapTarget.minimum, minHeight: TapTarget.minimum)
+                        .contentShape(Rectangle())
                 }
                 .accessibilityLabel("Step forward one frame")
             }
