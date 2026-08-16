@@ -3,10 +3,10 @@
 //  BleepKitUITests
 //
 //  End-to-end smoke test for the import flow: pick a video from the photo
-//  library, land on the Imported screen, open the project, and require the
-//  editor to reach a terminal state — preview ready or an explanatory
-//  failure. A hang in the working state is the audit's #1 blocker
-//  (an editor that spins forever) and fails this test.
+//  library, land directly in the editor, and require it to reach a
+//  terminal state — preview ready or an explanatory failure. A hang in
+//  the working state is the audit's #1 blocker (an editor that spins
+//  forever) and fails this test.
 //
 //  Setup: the simulator's photo library must contain at least one video —
 //  seed one from the host with:
@@ -41,27 +41,19 @@ final class ImportFlowSmokeTests: XCTestCase {
         sleep(5) // let the remote picker settle
         app.coordinate(withNormalizedOffset: CGVector(dx: 0.16, dy: 0.43)).tap()
 
-        // The picker dismisses itself on selection. If it's still up after
-        // the tap, the library has no video in that cell — a setup problem,
-        // not an app regression.
-        let done = app.buttons["Done"]
-        if !done.waitForExistence(timeout: 60) {
+        // The picker dismisses itself on selection and a successful import
+        // lands directly in the editor (its bottom bar is the marker). If
+        // the picker is still up, the library has no video in that cell —
+        // a setup problem, not an app regression.
+        let censoringButton = app.buttons["Censoring"]
+        if !censoringButton.waitForExistence(timeout: 90) {
             if app.staticTexts["Private Access to Photos"].exists
                 || app.buttons["Close"].exists {
                 throw XCTSkip("Photo library appears empty — seed a video with `xcrun simctl addmedia` before running.")
             }
-            XCTFail("Import never reached the Imported screen.")
+            XCTFail("Import never reached the editor.")
             return
         }
-
-        // Imported details are present.
-        XCTAssertTrue(app.staticTexts["Duration"].exists, "Imported screen is missing its metadata")
-        done.tap()
-
-        // The imported project appears in the list; open it.
-        let row = app.cells.firstMatch
-        XCTAssertTrue(row.waitForExistence(timeout: 10), "No project row after import")
-        row.tap()
 
         // Transcription auto-starts and may prompt for speech recognition.
         dismissSpringboardAlertIfPresent()

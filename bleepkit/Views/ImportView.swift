@@ -3,36 +3,48 @@
 //  BleepKit
 //
 
-import AVFAudio
-import AVFoundation
-import CoreGraphics
 import OSLog
 import PhotosUI
 import SwiftData
 import SwiftUI
 import UniformTypeIdentifiers
 
-/// The import flow: pick a video, watch it ingest, inspect the result.
+/// The import flow: pick a video, watch it ingest, land in the editor.
 struct ImportView: View {
     let viewModel: ImportViewModel
 
     var body: some View {
-        switch viewModel.phase {
-        case .idle:
-            ImportIdleView(viewModel: viewModel)
-        case .importing(let step):
-            LoadingStateView(message: step) {
-                viewModel.cancelImport()
-            }
-        case .ready(let source):
-            SourceDetailsView(source: source) {
-                viewModel.reset()
-            }
-        case .failed(let message):
-            ErrorStateView(title: "Import Failed", message: message, retryTitle: "Back") {
-                viewModel.reset()
+        Group {
+            switch viewModel.phase {
+            case .idle, .ready:
+                ImportIdleView(viewModel: viewModel)
+            case .importing(let step):
+                LoadingStateView(message: step) {
+                    viewModel.cancelImport()
+                }
+            case .failed(let message):
+                ErrorStateView(title: "Import Failed", message: message, retryTitle: "Back") {
+                    viewModel.reset()
+                }
             }
         }
+        // A successful import opens the editor immediately; going back
+        // returns to the project list (audit 1.1).
+        .navigationDestination(isPresented: editorPresented) {
+            if case .ready(let source) = viewModel.phase {
+                EditorView(project: source.project)
+            }
+        }
+    }
+
+    private var editorPresented: Binding<Bool> {
+        Binding(
+            get: {
+                if case .ready = viewModel.phase { return true }
+                return false
+            },
+            set: { if !$0 { viewModel.reset() } }
+        )
     }
 }
 
@@ -161,100 +173,3 @@ private struct ProjectRowView: View {
     }
 }
 
-/// Details of a just-imported source: duration, geometry, frame rate, and
-/// the extracted audio file with in-app playback.
-private struct SourceDetailsView: View {
-    let source: ImportViewModel.ImportedSource
-    let onDone: () -> Void
-
-    var body: some View {
-        List {
-            Section("Video") {
-                LabeledContent("Title", value: source.project.title)
-                LabeledContent("Duration", value: source.metadata.durationSeconds.timecodeString)
-                LabeledContent("Source size", value: sizeText(source.metadata.naturalSize))
-                LabeledContent("Oriented size", value: sizeText(source.metadata.displaySize))
-                LabeledContent("Frame rate", value: String(format: "%.2f fps", source.metadata.nominalFrameRate))
-                LabeledContent("Stored as", value: source.project.sourceFileName)
-                    .font(.bleepMetadata)
-            }
-            Section("Audio") {
-                if let audioURL = source.extractedAudioURL {
-                    LabeledContent("Extracted audio", value: FileSize.string(for: audioURL))
-                    AudioPlaybackRow(url: audioURL)
-                } else {
-                    Text("This video has no audio track. Captions will still work; audio censoring will be skipped.")
-                        .foregroundStyle(.secondary)
-                }
-            }
-        }
-        .navigationTitle("Imported")
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .confirmationAction) {
-                Button("Done", action: onDone)
-            }
-        }
-    }
-
-    private func sizeText(_ size: CGSize) -> String {
-        "\(Int(size.width.rounded())) × \(Int(size.height.rounded()))"
-    }
-}
-
-/// Plays the extracted `.m4a` so the import can be verified end to end.
-private struct AudioPlaybackRow: View {
-    let url: URL
-    @State private var player: AVPlayer?
-
-    private var isPlaying: Bool { player != nil }
-
-    var body: some View {
-        Button {
-            if isPlaying {
-                stop()
-            } else {
-                play()
-            }
-        } label: {
-            Label(
-                isPlaying ? "Stop" : "Play Extracted Audio",
-                systemImage: isPlaying ? "stop.circle" : "play.circle"
-            )
-        }
-        .onDisappear {
-            stop()
-        }
-    }
-
-    private func play() {
-        do {
-            let session = AVAudioSession.sharedInstance()
-            try session.setCategory(.playback)
-            try session.setActive(true)
-        } catch {
-            Logger.audio.error("Audio session activation failed: \(error.localizedDescription)")
-        }
-        let newPlayer = AVPlayer(url: url)
-        player = newPlayer
-        newPlayer.play()
-    }
-
-    private func stop() {
-        player?.pause()
-        player = nil
-    }
-}
-
-/// Formats on-disk file sizes for display.
-private enum FileSize {
-    static func string(for url: URL) -> String {
-        do {
-            let values = try url.resourceValues(forKeys: [.fileSizeKey])
-            guard let bytes = values.fileSize else { return "—" }
-            return Int64(bytes).formatted(.byteCount(style: .file))
-        } catch {
-            return "—"
-        }
-    }
-}
