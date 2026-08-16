@@ -12,6 +12,7 @@ struct ExportView: View {
     @Environment(AppEnvironment.self) private var environment
     @Environment(\.dismiss) private var dismiss
     @State private var viewModel: ExportViewModel?
+    @State private var showsCancelConfirmation = false
 
     var body: some View {
         NavigationStack {
@@ -27,14 +28,32 @@ struct ExportView: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Close") {
-                        viewModel?.cancel()
-                        viewModel?.cleanUp()
-                        dismiss()
+                        if isWorking {
+                            // A stray tap must not silently discard the render.
+                            showsCancelConfirmation = true
+                        } else {
+                            viewModel?.cleanUp()
+                            dismiss()
+                        }
                     }
                 }
             }
         }
         .interactiveDismissDisabled(isWorking)
+        .confirmationDialog(
+            "Cancel this export?",
+            isPresented: $showsCancelConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button("Cancel Export", role: .destructive) {
+                viewModel?.cancel()
+                viewModel?.cleanUp()
+                dismiss()
+            }
+            Button("Continue Exporting", role: .cancel) {}
+        } message: {
+            Text("The render so far is discarded.")
+        }
         .task {
             if viewModel == nil {
                 let model = ExportViewModel(editor: editor, environment: environment)
