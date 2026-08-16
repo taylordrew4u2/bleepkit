@@ -177,6 +177,7 @@ private struct TokenRow: View {
                         .accessibilityLabel(token.isCensored ? "Censored" : "Not censored")
                     VStack(alignment: .leading, spacing: Spacing.hairline) {
                         Text(token.text)
+                            .fontWeight(token.isCensored ? .semibold : .regular)
                             .foregroundStyle(token.isCensored ? Color.bleepAccent : .primary)
                         if token.userOverride != nil {
                             Text(token.userOverride == true ? "Always censored" : "Never censored")
