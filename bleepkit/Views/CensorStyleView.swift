@@ -39,6 +39,23 @@ struct CensorStyleView: View {
                 Text("The censored word keeps its place in the line — only how it looks changes.")
             }
 
+            Section {
+                Toggle("Show sticker over video", isOn: overlayEnabledBinding)
+                if viewModel.project.overlayEnabled {
+                    Picker("Sticker", selection: overlayStickerBinding) {
+                        ForEach(emojiChoices, id: \.self) { emoji in
+                            Text(emoji).tag(emoji)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    Toggle("Follow captions", isOn: overlayFollowsBinding)
+                }
+            } header: {
+                Text("Sticker")
+            } footer: {
+                Text("The sticker appears over the video during censored moments.")
+            }
+
             if viewModel.project.overlayEnabled && !viewModel.project.overlayFollowsCaption {
                 Section {
                     SliderRow(
@@ -127,6 +144,32 @@ struct CensorStyleView: View {
                 case .emoji: viewModel.setCensorStyle(.emoji(emojiChoices[0]))
                 }
             }
+        )
+    }
+
+    private var overlayEnabledBinding: Binding<Bool> {
+        Binding(
+            get: { viewModel.project.overlayEnabled },
+            set: { viewModel.setOverlayEnabled($0) }
+        )
+    }
+
+    private var overlayStickerBinding: Binding<String> {
+        Binding(
+            get: {
+                let identifier = viewModel.project.overlayAssetIdentifier ?? ""
+                return identifier.hasPrefix("emoji:")
+                    ? String(identifier.dropFirst("emoji:".count))
+                    : StickerRenderer.bundledEmoji[0]
+            },
+            set: { viewModel.setOverlaySticker($0) }
+        )
+    }
+
+    private var overlayFollowsBinding: Binding<Bool> {
+        Binding(
+            get: { viewModel.project.overlayFollowsCaption },
+            set: { viewModel.setOverlayFollowsCaption($0) }
         )
     }
 

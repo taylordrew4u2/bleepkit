@@ -65,9 +65,6 @@ private struct EditorContentView: View {
         .padding(.bottom, Spacing.compact)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                settingsMenu
-            }
-            ToolbarItem(placement: .topBarTrailing) {
                 if isPreparingPreview {
                     // Explains the missing Export action instead of a bare
                     // disabled button (audit 1.3).
@@ -313,84 +310,4 @@ private struct EditorContentView: View {
         return "Transcript · \(tokens.filter(\.isCensored).count) censored"
     }
 
-    // MARK: Settings
-
-    private var settingsMenu: some View {
-        Menu {
-            Section("Caption censor style") {
-                Picker("Caption censor style", selection: censorStyleBinding) {
-                    Text("Asterisks (f***)").tag(CensorStyleChoice.asterisks)
-                    Text("Black bar").tag(CensorStyleChoice.blackBar)
-                    Text("Emoji 🤬").tag(CensorStyleChoice.emoji)
-                }
-            }
-            Section("Video overlay") {
-                Toggle("Show sticker over video", isOn: overlayEnabledBinding)
-                if viewModel.project.overlayEnabled {
-                    Picker("Sticker", selection: overlayStickerBinding) {
-                        ForEach(StickerRenderer.bundledEmoji, id: \.self) { emoji in
-                            Text(emoji).tag(emoji)
-                        }
-                    }
-                    Toggle("Follow captions", isOn: overlayFollowsBinding)
-                }
-            }
-        } label: {
-            Label("Style", systemImage: "paintbrush")
-        }
-    }
-
-    /// The censor styles offered in the quick menu.
-    private enum CensorStyleChoice: Hashable {
-        case asterisks, blackBar, emoji
-
-        init(_ style: CensorStyle) {
-            switch style {
-            case .asterisks: self = .asterisks
-            case .blackBar, .image: self = .blackBar
-            case .emoji: self = .emoji
-            }
-        }
-
-        var style: CensorStyle {
-            switch self {
-            case .asterisks: .asterisks
-            case .blackBar: .blackBar
-            case .emoji: .emoji("🤬")
-            }
-        }
-    }
-
-    private var censorStyleBinding: Binding<CensorStyleChoice> {
-        Binding(
-            get: { CensorStyleChoice(viewModel.project.censorStyle) },
-            set: { viewModel.setCensorStyle($0.style) }
-        )
-    }
-
-    private var overlayEnabledBinding: Binding<Bool> {
-        Binding(
-            get: { viewModel.project.overlayEnabled },
-            set: { viewModel.setOverlayEnabled($0) }
-        )
-    }
-
-    private var overlayStickerBinding: Binding<String> {
-        Binding(
-            get: {
-                let identifier = viewModel.project.overlayAssetIdentifier ?? ""
-                return identifier.hasPrefix("emoji:")
-                    ? String(identifier.dropFirst("emoji:".count))
-                    : StickerRenderer.bundledEmoji[0]
-            },
-            set: { viewModel.setOverlaySticker($0) }
-        )
-    }
-
-    private var overlayFollowsBinding: Binding<Bool> {
-        Binding(
-            get: { viewModel.project.overlayFollowsCaption },
-            set: { viewModel.setOverlayFollowsCaption($0) }
-        )
-    }
 }
