@@ -45,12 +45,16 @@ struct EditorView: View {
 private struct EditorContentView: View {
     let viewModel: EditorViewModel
     @State private var showsExportSheet = false
+    @State private var dismissedLocaleNotice = false
 
     var body: some View {
         VStack(spacing: Spacing.standard) {
             previewArea
             if let saveError = viewModel.saveErrorMessage {
                 saveErrorBanner(saveError)
+            }
+            if let notice = viewModel.localeNotice, !dismissedLocaleNotice {
+                localeNoticeBanner(notice)
             }
             if viewModel.project.overlayEnabled && !viewModel.project.overlayFollowsCaption {
                 stickerPlacementHint
@@ -87,6 +91,26 @@ private struct EditorContentView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(Color.bleepAccent, in: RoundedRectangle(cornerRadius: Radius.control))
             .padding(.horizontal)
+    }
+
+    /// Non-English devices get no automatic profanity detection; that
+    /// deserves more than the Transcript screen's footnote (audit 3.2).
+    private func localeNoticeBanner(_ notice: String) -> some View {
+        HStack(alignment: .top, spacing: Spacing.compact) {
+            Label(notice, systemImage: "globe")
+                .font(.bleepControlLabel)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            Button {
+                dismissedLocaleNotice = true
+            } label: {
+                Image(systemName: "xmark")
+                    .font(.bleepControlLabel)
+            }
+            .accessibilityLabel("Dismiss language notice")
+        }
+        .padding(Spacing.compact)
+        .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: Radius.control))
+        .padding(.horizontal)
     }
 
     // MARK: Preview
