@@ -13,6 +13,7 @@ import SwiftUI
 /// Shares the editor's view model so overrides refresh the preview live.
 struct WordListView: View {
     let viewModel: EditorViewModel
+    @State private var showsRetranscribeConfirmation = false
 
     var body: some View {
         content
@@ -101,13 +102,31 @@ struct WordListView: View {
                     }
                     Section {
                         Button("Re-transcribe", systemImage: "arrow.clockwise") {
-                            viewModel.transcribe()
+                            // Overrides are re-matched by timing after a fresh
+                            // run and can be lost — confirm before discarding.
+                            if viewModel.project.tokens.contains(where: { $0.userOverride != nil }) {
+                                showsRetranscribeConfirmation = true
+                            } else {
+                                viewModel.transcribe()
+                            }
                         }
                     }
                 } label: {
                     Label("Options", systemImage: "ellipsis.circle")
                 }
             }
+        }
+        .confirmationDialog(
+            "Re-transcribe this video?",
+            isPresented: $showsRetranscribeConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button("Re-transcribe", role: .destructive) {
+                viewModel.transcribe()
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("The current transcript is replaced. Your word overrides are re-matched by timing and may be lost.")
         }
     }
 
