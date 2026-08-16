@@ -122,24 +122,18 @@ struct ExportView: View {
         }
     }
 
+    /// Same visual language as the sheet's other states, with the primary
+    /// action prominent (audit 7.2/7.3).
     private func successView(title: String, message: String, url: URL) -> some View {
-        VStack(spacing: 16) {
-            // Monochrome result mark — the ink stamp; the accent stays
-            // reserved for censor marks.
-            Image(systemName: "checkmark.circle.fill")
-                .font(.bleepResultGlyph)
-                .foregroundStyle(.primary)
-            Text(title)
-                .font(.bleepMasthead)
+        ContentUnavailableView {
+            Label(title, systemImage: "checkmark.circle.fill")
+        } description: {
             Text(message)
-                .font(.bleepDetail)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, Spacing.wide)
+        } actions: {
             ShareLink(item: url) {
                 Label("Share Video", systemImage: "square.and.arrow.up")
             }
-            .buttonStyle(.bordered)
+            .buttonStyle(.borderedProminent)
         }
     }
 }
