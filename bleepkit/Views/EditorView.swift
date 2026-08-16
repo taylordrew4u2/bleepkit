@@ -68,17 +68,34 @@ private struct EditorContentView: View {
                 settingsMenu
             }
             ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    showsExportSheet = true
-                } label: {
-                    Label("Export", systemImage: "square.and.arrow.up")
+                if isPreparingPreview {
+                    // Explains the missing Export action instead of a bare
+                    // disabled button (audit 1.3).
+                    ProgressView()
+                        .accessibilityLabel("Preparing preview for export")
+                } else {
+                    Button {
+                        showsExportSheet = true
+                    } label: {
+                        Label("Export", systemImage: "square.and.arrow.up")
+                    }
+                    .disabled(!viewModel.previewReady)
+                    .accessibilityLabel("Export censored video")
                 }
-                .disabled(!viewModel.previewReady)
-                .accessibilityLabel("Export censored video")
             }
         }
         .sheet(isPresented: $showsExportSheet) {
             ExportView(editor: viewModel)
+        }
+    }
+
+    /// True while the censored composition is genuinely building — not
+    /// when it failed or transcription needs attention.
+    private var isPreparingPreview: Bool {
+        guard !viewModel.previewReady, viewModel.previewError == nil else { return false }
+        switch viewModel.transcriptionState {
+        case .working, .ready: return true
+        case .idle, .failed, .permissionDenied: return false
         }
     }
 
