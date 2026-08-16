@@ -65,11 +65,8 @@ private struct ImportIdleView: View {
 
             if projects.isEmpty {
                 Section {
-                    EmptyStateView(
-                        title: "No Projects Yet",
-                        systemImage: "video.badge.waveform",
-                        message: "Import a Reel to transcribe it and censor profanity."
-                    )
+                    Text("No projects yet. Import a Reel to transcribe it and censor profanity.")
+                        .foregroundStyle(.secondary)
                 }
             } else {
                 Section("Projects") {
