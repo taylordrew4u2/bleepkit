@@ -43,6 +43,8 @@ private struct ImportIdleView: View {
     @Query(sort: \Project.updatedAt, order: .reverse) private var projects: [Project]
     @State private var photosSelection: PhotosPickerItem?
     @State private var showsFileImporter = false
+    @State private var pendingDeletion: IndexSet?
+    @State private var deleteFailureMessage: String?
 
     var body: some View {
         List {
@@ -78,9 +80,42 @@ private struct ImportIdleView: View {
                             ProjectRowView(project: project)
                         }
                     }
-                    .onDelete(perform: deleteProjects)
+                    .onDelete { offsets in
+                        pendingDeletion = offsets
+                    }
                 }
             }
+        }
+        .confirmationDialog(
+            "Delete this project?",
+            isPresented: Binding(
+                get: { pendingDeletion != nil },
+                set: { if !$0 { pendingDeletion = nil } }
+            ),
+            titleVisibility: .visible
+        ) {
+            Button("Delete Project and Video", role: .destructive) {
+                if let pendingDeletion {
+                    deleteProjects(at: pendingDeletion)
+                }
+                pendingDeletion = nil
+            }
+            Button("Cancel", role: .cancel) {
+                pendingDeletion = nil
+            }
+        } message: {
+            Text("The imported video and every edit are removed permanently. This can't be undone.")
+        }
+        .alert(
+            "Couldn't Delete Project",
+            isPresented: Binding(
+                get: { deleteFailureMessage != nil },
+                set: { if !$0 { deleteFailureMessage = nil } }
+            )
+        ) {
+            Button("OK") { deleteFailureMessage = nil }
+        } message: {
+            Text(deleteFailureMessage ?? "")
         }
         .onChange(of: photosSelection) { _, newValue in
             guard let newValue else { return }
@@ -109,6 +144,7 @@ private struct ImportIdleView: View {
                 try environment.projectStore.delete(projects[index])
             } catch {
                 Logger.storage.error("Failed to delete project: \(error.localizedDescription)")
+                deleteFailureMessage = error.localizedDescription
             }
         }
     }
