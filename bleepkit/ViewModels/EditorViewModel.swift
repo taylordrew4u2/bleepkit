@@ -38,6 +38,9 @@ final class EditorViewModel {
     /// Set when the device locale isn't English: captions still work, but
     /// the bundled profanity vocabulary is English-only.
     private(set) var localeNotice: String?
+    /// The last persistence failure, cleared by the next successful save.
+    /// Non-nil means the user's edits will not survive a relaunch.
+    private(set) var saveErrorMessage: String?
 
     let project: Project
 
@@ -206,8 +209,10 @@ final class EditorViewModel {
         project.tokens = tokens
         do {
             try projectStore.save()
+            saveErrorMessage = nil
         } catch {
             Logger.storage.error("Failed to save tokens: \(error.localizedDescription)")
+            saveErrorMessage = error.localizedDescription
         }
         if case .ready = transcriptionState {
             transcriptionState = .ready(tokens)
@@ -387,8 +392,10 @@ final class EditorViewModel {
         project.beepSettings = settings
         do {
             try projectStore.save()
+            saveErrorMessage = nil
         } catch {
             Logger.storage.error("Failed to save beep settings: \(error.localizedDescription)")
+            saveErrorMessage = error.localizedDescription
         }
         refreshPreview()
     }
@@ -406,8 +413,10 @@ final class EditorViewModel {
         project.updatedAt = .now
         do {
             try projectStore.save()
+            saveErrorMessage = nil
         } catch {
             Logger.storage.error("Failed to save project: \(error.localizedDescription)")
+            saveErrorMessage = error.localizedDescription
         }
         previewRevision += 1
     }

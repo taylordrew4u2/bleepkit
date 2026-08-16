@@ -49,6 +49,9 @@ private struct EditorContentView: View {
     var body: some View {
         VStack(spacing: Spacing.standard) {
             previewArea
+            if let saveError = viewModel.saveErrorMessage {
+                saveErrorBanner(saveError)
+            }
             if viewModel.project.overlayEnabled && !viewModel.project.overlayFollowsCaption {
                 stickerPlacementHint
             }
@@ -72,6 +75,18 @@ private struct EditorContentView: View {
         .sheet(isPresented: $showsExportSheet) {
             ExportView(editor: viewModel)
         }
+    }
+
+    /// Non-modal warning that edits aren't being persisted; clears itself
+    /// on the next successful save.
+    private func saveErrorBanner(_ message: String) -> some View {
+        Label("Changes aren't being saved: \(message)", systemImage: "exclamationmark.triangle.fill")
+            .font(.bleepControlLabel)
+            .foregroundStyle(Color.bleepOnVideo) // white-on-accent
+            .padding(Spacing.compact)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color.bleepAccent, in: RoundedRectangle(cornerRadius: Radius.control))
+            .padding(.horizontal)
     }
 
     // MARK: Preview
