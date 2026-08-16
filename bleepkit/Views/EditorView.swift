@@ -134,11 +134,13 @@ private struct EditorContentView: View {
                         viewModel.cancelTranscription()
                     }
                     .background(Color.bleepScrim)
+                    .environment(\.colorScheme, .dark)
                 } else if let previewError = viewModel.previewError {
                     ErrorStateView(title: "Preview Failed", message: previewError) {
                         viewModel.refreshPreview()
                     }
                     .background(Color.bleepScrim)
+                    .environment(\.colorScheme, .dark)
                 } else if !viewModel.previewReady {
                     // Without a preview there is nothing usable on screen, so
                     // a stalled transcription must explain itself here — not
