@@ -24,6 +24,7 @@ struct ScrubberView: View {
             )
             .disabled(durationSeconds <= 0)
             .accessibilityLabel("Timeline")
+            .accessibilityValue("\(currentSeconds.timecodeString) of \(durationSeconds.timecodeString)")
             HStack {
                 Text(currentSeconds.timecodeString)
                 Spacer()
