@@ -11,9 +11,42 @@ import Foundation
 /// Colors are stored as hex strings ("#RRGGBB") so the model stays Codable
 /// and free of UI-framework types.
 nonisolated struct CaptionStyle: Codable, Hashable, Sendable {
-    /// System font families available for captions. All ship with iOS.
+    /// Font families available for captions. All ship with iOS — the SF
+    /// and New York designs resolve through the system font; the rest
+    /// are bundled classics resolved by family name.
     enum FontFamily: String, Codable, CaseIterable, Sendable {
-        case sfPro, sfProRounded, newYork
+        case sfPro, sfProRounded, newYork, sfMono
+        case avenirNext, futura, georgia, americanTypewriter, markerFelt, chalkboard
+
+        /// The name shown in the style picker.
+        var displayName: String {
+            switch self {
+            case .sfPro: "SF Pro"
+            case .sfProRounded: "SF Pro Rounded"
+            case .newYork: "New York"
+            case .sfMono: "SF Mono"
+            case .avenirNext: "Avenir Next"
+            case .futura: "Futura"
+            case .georgia: "Georgia"
+            case .americanTypewriter: "American Typewriter"
+            case .markerFelt: "Marker Felt"
+            case .chalkboard: "Chalkboard"
+            }
+        }
+
+        /// The iOS font-family name, for fonts resolved by name rather
+        /// than through a system design; nil for the SF/New York designs.
+        var familyName: String? {
+            switch self {
+            case .sfPro, .sfProRounded, .newYork, .sfMono: nil
+            case .avenirNext: "Avenir Next"
+            case .futura: "Futura"
+            case .georgia: "Georgia"
+            case .americanTypewriter: "American Typewriter"
+            case .markerFelt: "Marker Felt"
+            case .chalkboard: "Chalkboard SE"
+            }
+        }
     }
 
     var fontFamily: FontFamily = .sfProRounded

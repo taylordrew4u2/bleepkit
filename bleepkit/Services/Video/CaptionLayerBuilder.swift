@@ -530,8 +530,9 @@ struct CaptionLayerBuilder {
 
     // MARK: Fonts and colors
 
-    /// Resolves a system font (SF Pro, SF Pro Rounded, New York) at a
-    /// numeric weight. System fonts only — nothing is bundled.
+    /// Resolves a caption font at a numeric weight. SF and New York come
+    /// from the system font's designs; the classic families resolve by
+    /// name to the closest installed weight. Nothing is bundled.
     nonisolated static func uiFont(
         family: CaptionStyle.FontFamily,
         size: CGFloat,
@@ -549,12 +550,22 @@ struct CaptionLayerBuilder {
         case ..<850: uiWeight = .heavy
         default: uiWeight = .black
         }
+        if let familyName = family.familyName {
+            let descriptor = UIFontDescriptor(fontAttributes: [
+                .family: familyName,
+                .traits: [UIFontDescriptor.TraitKey.weight: uiWeight],
+            ])
+            return UIFont(descriptor: descriptor, size: size)
+        }
         let base = UIFont.systemFont(ofSize: size, weight: uiWeight)
         let design: UIFontDescriptor.SystemDesign?
         switch family {
         case .sfPro: design = nil
         case .sfProRounded: design = .rounded
         case .newYork: design = .serif
+        case .sfMono: design = .monospaced
+        // Named families never reach here; they resolve above.
+        default: design = nil
         }
         if let design, let designed = base.fontDescriptor.withDesign(design) {
             return UIFont(descriptor: designed, size: size)

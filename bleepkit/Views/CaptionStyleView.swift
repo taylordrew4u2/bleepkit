@@ -6,7 +6,7 @@
 import SwiftUI
 
 /// Caption appearance controls. Every change persists immediately and
-/// refreshes the preview's layer trees; system fonts only.
+/// refreshes the preview's layer trees; iOS-bundled fonts only.
 struct CaptionStyleView: View {
     let viewModel: EditorViewModel
 
@@ -14,9 +14,9 @@ struct CaptionStyleView: View {
         Form {
             Section("Font") {
                 Picker("Family", selection: binding(\.fontFamily)) {
-                    Text("SF Pro").tag(CaptionStyle.FontFamily.sfPro)
-                    Text("SF Pro Rounded").tag(CaptionStyle.FontFamily.sfProRounded)
-                    Text("New York").tag(CaptionStyle.FontFamily.newYork)
+                    ForEach(CaptionStyle.FontFamily.allCases, id: \.self) { family in
+                        Text(family.displayName).tag(family)
+                    }
                 }
                 SliderRow(
                     title: "Size",
