@@ -47,6 +47,7 @@ final class ImportFlowSmokeTests: XCTestCase {
         // a setup problem, not an app regression.
         let censoringButton = app.buttons["Censoring"]
         if !censoringButton.waitForExistence(timeout: 90) {
+            attachScreenshot(app, name: "import-stuck")
             if app.staticTexts["Private Access to Photos"].exists
                 || app.buttons["Close"].exists {
                 throw XCTSkip("Photo library appears empty — seed a video with `xcrun simctl addmedia` before running.")
@@ -78,10 +79,20 @@ final class ImportFlowSmokeTests: XCTestCase {
             }
             sleep(3)
         }
+        attachScreenshot(app, name: "editor-final")
         XCTAssertTrue(
             reachedTerminalState,
             "Editor never reached a terminal state — transcription stalled with no explanation or retry (audit finding 2.1)."
         )
+    }
+
+    /// Evidence for skip/fail triage; the result bundle is otherwise blind.
+    @MainActor
+    private func attachScreenshot(_ app: XCUIApplication, name: String) {
+        let attachment = XCTAttachment(screenshot: app.screenshot())
+        attachment.name = name
+        attachment.lifetime = .keepAlways
+        add(attachment)
     }
 
     @MainActor
