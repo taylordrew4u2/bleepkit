@@ -26,9 +26,7 @@ struct RootView: View {
                     ProgressView()
                 }
             }
-            .navigationTitle("BleepKit")
-            // The masthead's tagline — set here so it sits under the large
-            // serif title on the dashboard only, not on pushed screens.
+            // No app-name header — the tagline alone marks the dashboard.
             .mastheadTagline("Your on-device redaction desk")
         }
         .task {

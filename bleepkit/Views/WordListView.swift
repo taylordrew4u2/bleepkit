@@ -82,7 +82,7 @@ struct WordListView: View {
             } header: {
                 Text("\(tokens.count) words · \(tokens.filter(\.isCensored).count) censored")
             } footer: {
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: Spacing.tight) {
                     if let notice = viewModel.localeNotice {
                         Text(notice)
                     }

@@ -54,7 +54,7 @@ struct BleepKitApp: App {
                         .modelContainer(environment.modelContainer)
                 case .failure(let error):
                     ErrorStateView(
-                        title: "BleepKit Could Not Start",
+                        title: "Could Not Start",
                         message: error.localizedDescription
                     )
                 }
