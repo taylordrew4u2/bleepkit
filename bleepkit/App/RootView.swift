@@ -27,6 +27,9 @@ struct RootView: View {
                 }
             }
             .navigationTitle("BleepKit")
+            // The masthead's tagline — set here so it sits under the large
+            // serif title on the dashboard only, not on pushed screens.
+            .mastheadTagline("Your on-device redaction desk")
         }
         .task {
             if importViewModel == nil {
@@ -51,5 +54,18 @@ struct RootView: View {
             at: url,
             suggestedTitle: url.deletingPathExtension().lastPathComponent
         )
+    }
+}
+
+private extension View {
+    /// A navigation-bar tagline under the masthead, on OS versions that
+    /// can render one; a no-op below iOS 26.
+    @ViewBuilder
+    func mastheadTagline(_ text: String) -> some View {
+        if #available(iOS 26.0, *) {
+            navigationSubtitle(text)
+        } else {
+            self
+        }
     }
 }

@@ -102,6 +102,18 @@ extension Font {
     static let bleepTransportGlyph = Font.title2
 }
 
+// MARK: - Thumbnails
+
+/// Fixed frames for video thumbnails in lists.
+enum ThumbnailSize {
+    /// Project-row thumbnail width.
+    static let projectWidth: CGFloat = 60
+    /// Project-row thumbnail height — 3:4, matching portrait Reels.
+    static let projectHeight: CGFloat = 80
+    /// Decode cap for generated thumbnails (3× the display height).
+    static let projectMaxPixels: CGFloat = 240
+}
+
 // MARK: - Glyph sizes
 
 /// Base sizes for oversized standalone glyphs. Consume through
