@@ -49,21 +49,37 @@ struct ImportView: View {
     }
 }
 
-/// The idle screen: import buttons plus the saved-project list.
+/// The idle dashboard: the new-project actions up top, the most recent
+/// project as a continue-editing hero, and the rest in a grid.
 private struct ImportIdleView: View {
     let viewModel: ImportViewModel
     @Environment(AppEnvironment.self) private var environment
     @Query(sort: \Project.updatedAt, order: .reverse) private var projects: [Project]
     @State private var photosSelection: PhotosPickerItem?
     @State private var showsFileImporter = false
-    @State private var pendingDeletion: IndexSet?
+    @State private var pendingDeletion: Project?
     @State private var deleteFailureMessage: String?
 
     var body: some View {
-        List {
-            importSection
-            projectsSection
+        ScrollView {
+            VStack(alignment: .leading, spacing: Spacing.roomy) {
+                newProjectControls
+                if let current = projects.first {
+                    continueEditingSection(current)
+                }
+                if projects.isEmpty {
+                    firstImportCard
+                } else if projects.count > 1 {
+                    allProjectsSection
+                }
+                privacyFootnote
+            }
+            .padding(.horizontal)
+            .padding(.vertical, Spacing.standard)
         }
+        .navigationTitle(titleText)
+        .navigationBarTitleDisplayMode(.inline)
+        .mastheadTagline(subtitleText)
         .confirmationDialog(
             "Delete this project?",
             isPresented: Binding(
@@ -74,7 +90,7 @@ private struct ImportIdleView: View {
         ) {
             Button("Delete Project and Video", role: .destructive) {
                 if let pendingDeletion {
-                    deleteProjects(at: pendingDeletion)
+                    delete(pendingDeletion)
                 }
                 pendingDeletion = nil
             }
@@ -116,191 +132,333 @@ private struct ImportIdleView: View {
         }
     }
 
-    /// Two source cards side by side — the screen's primary action, given
-    /// the visual weight of one instead of two plain list rows.
-    private var importSection: some View {
-        Section {
-            HStack(spacing: Spacing.standard) {
-                PhotosPicker(selection: $photosSelection, matching: .videos) {
-                    ImportSourceCard(
-                        icon: "photo.on.rectangle",
-                        title: "Photos",
-                        caption: "From your camera roll"
-                    )
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Choose from Photos")
+    // MARK: Header
 
-                Button {
-                    showsFileImporter = true
-                } label: {
-                    ImportSourceCard(
-                        icon: "folder",
-                        title: "Files",
-                        caption: "Browse for a movie"
-                    )
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Import from Files")
-            }
-            .listRowInsets(EdgeInsets())
-            .listRowBackground(Color.clear)
-        } header: {
-            Text("New Project")
-        } footer: {
-            Label(
-                "Everything happens on this iPhone. Your video never leaves the device.",
-                systemImage: "lock.iphone"
-            )
+    private var titleText: String {
+        switch projects.count {
+        case 0: return "Projects"
+        case 1: return "1 project"
+        default: return "\(projects.count) projects"
         }
     }
 
-    @ViewBuilder
-    private var projectsSection: some View {
-        if projects.isEmpty {
-            Section("Projects") {
-                HStack(spacing: Spacing.standard) {
-                    Image(systemName: "film")
-                        .font(.bleepTransportGlyph)
-                        .foregroundStyle(.secondary)
-                    VStack(alignment: .leading, spacing: Spacing.hairline) {
-                        Text("No projects yet")
-                        // The blocks are the app's redaction motif in
-                        // miniature; the accessibility label reads plainly.
-                        (Text("Import a Reel and BleepKit finds the ")
-                            + Text("████").foregroundStyle(Color.bleepAccent)
-                            + Text(" for you."))
-                            .font(.bleepMetadata)
-                            .foregroundStyle(.secondary)
-                            .accessibilityLabel("Import a Reel and BleepKit finds the profanity for you.")
-                    }
-                }
-                .padding(.vertical, Spacing.compact)
+    /// "2.1 GB free · 3 need review" — the desk's vital signs.
+    private var subtitleText: String {
+        var parts: [String] = []
+        if let free = Self.freeSpaceText() {
+            parts.append(free)
+        }
+        let review = projects.count { project in
+            project.tokens.contains { $0.detectedProfane && $0.userOverride == nil }
+        }
+        if review > 0 {
+            parts.append(review == 1 ? "1 needs review" : "\(review) need review")
+        }
+        return parts.joined(separator: " · ")
+    }
+
+    private static func freeSpaceText() -> String? {
+        let values = try? URL.documentsDirectory.resourceValues(
+            forKeys: [.volumeAvailableCapacityForImportantUsageKey]
+        )
+        guard let capacity = values?.volumeAvailableCapacityForImportantUsage else { return nil }
+        return "\(capacity.formatted(.byteCount(style: .file))) free"
+    }
+
+    // MARK: Sections
+
+    /// The screen's primary action: a full-width accent pill for Photos,
+    /// with the Files importer as a quieter chip beneath it.
+    private var newProjectControls: some View {
+        VStack(spacing: Spacing.standard) {
+            PhotosPicker(selection: $photosSelection, matching: .videos) {
+                Label("New project", systemImage: "plus")
+                    .font(.bleepEmphasis)
+                    .frame(maxWidth: .infinity, minHeight: TapTarget.minimum)
             }
-        } else {
-            Section {
-                ForEach(projects) { project in
+            .buttonStyle(.borderedProminent)
+            .buttonBorderShape(.capsule)
+            .foregroundStyle(Color.bleepOnAccent)
+            .accessibilityLabel("Choose from Photos")
+
+            Button {
+                showsFileImporter = true
+            } label: {
+                Label("Import from Files", systemImage: "square.and.arrow.down")
+                    .font(.bleepControlLabel)
+            }
+            .buttonStyle(.bordered)
+            .buttonBorderShape(.capsule)
+            .frame(maxWidth: .infinity)
+        }
+    }
+
+    private func continueEditingSection(_ project: Project) -> some View {
+        VStack(alignment: .leading, spacing: Spacing.compact) {
+            HStack(alignment: .firstTextBaseline) {
+                Text("Continue editing")
+                    .font(.bleepEmphasis)
+                Spacer()
+                Text("Saved \(project.updatedAt.formatted(.relative(presentation: .named)))")
+                    .font(.bleepFineprint)
+                    .foregroundStyle(.secondary)
+                    .textCase(.uppercase)
+            }
+            NavigationLink {
+                EditorView(project: project)
+            } label: {
+                ContinueEditingCard(project: project)
+            }
+            .buttonStyle(.plain)
+            .contextMenu {
+                deleteMenuButton(for: project)
+            }
+        }
+    }
+
+    private var allProjectsSection: some View {
+        VStack(alignment: .leading, spacing: Spacing.compact) {
+            HStack(alignment: .firstTextBaseline) {
+                Text("All projects")
+                    .font(.bleepEmphasis)
+                Spacer()
+                Text("Recent")
+                    .font(.bleepFineprint)
+                    .foregroundStyle(.secondary)
+            }
+            LazyVGrid(
+                columns: [
+                    GridItem(.flexible(), spacing: Spacing.standard),
+                    GridItem(.flexible(), spacing: Spacing.standard),
+                ],
+                alignment: .leading,
+                spacing: Spacing.standard
+            ) {
+                // The hero above is the newest project; the grid holds the rest.
+                ForEach(Array(projects.dropFirst())) { project in
                     NavigationLink {
                         EditorView(project: project)
                     } label: {
-                        ProjectRowView(project: project)
+                        ProjectGridCard(project: project)
+                    }
+                    .buttonStyle(.plain)
+                    .contextMenu {
+                        deleteMenuButton(for: project)
                     }
                 }
-                .onDelete { offsets in
-                    pendingDeletion = offsets
-                }
-            } header: {
-                HStack {
-                    Text("Projects")
-                    Spacer()
-                    Text(projects.count, format: .number)
-                        .monospacedDigit()
-                }
             }
         }
     }
 
-    private func deleteProjects(at offsets: IndexSet) {
-        for index in offsets {
-            do {
-                try environment.projectStore.delete(projects[index])
-            } catch {
-                Logger.storage.error("Failed to delete project: \(error.localizedDescription)")
-                deleteFailureMessage = error.localizedDescription
-            }
-        }
-    }
-}
-
-/// One import source: an accented glyph over a title and caption, framed
-/// as a sharp near-rectangle card.
-private struct ImportSourceCard: View {
-    let icon: String
-    let title: String
-    let caption: String
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: Spacing.compact) {
-            Image(systemName: icon)
-                .font(.bleepTransportGlyph)
-                .foregroundStyle(Color.bleepAccent)
-            VStack(alignment: .leading, spacing: Spacing.hairline) {
-                Text(title)
-                    .font(.bleepEmphasis)
-                    .foregroundStyle(.primary)
-                Text(caption)
-                    .font(.bleepMetadata)
-                    .foregroundStyle(.secondary)
-            }
-        }
-        .frame(maxWidth: .infinity, minHeight: TapTarget.minimum, alignment: .leading)
-        .padding(Spacing.standard)
-        .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: Radius.control))
-        // A hairline frame over the fill — the print-like rule that gives
-        // the card its Redaction Desk edge.
-        .overlay(
-            RoundedRectangle(cornerRadius: Radius.control)
-                .strokeBorder(.separator)
-        )
-        .accessibilityElement(children: .combine)
-    }
-}
-
-/// One row in the saved-project list: source thumbnail, title, duration
-/// and last-edit metadata, and where the project stands on censoring.
-private struct ProjectRowView: View {
-    let project: Project
-
-    var body: some View {
-        HStack(spacing: Spacing.standard) {
-            ProjectThumbnailView(project: project)
-            VStack(alignment: .leading, spacing: Spacing.tight) {
-                Text(project.title)
-                    .lineLimit(2)
-                Text("\(project.durationSeconds.timecodeString) · Edited \(project.updatedAt.formatted(.relative(presentation: .named)))")
-                    .font(.bleepMetadata)
-                    .foregroundStyle(.secondary)
-                censorStatus
-            }
-        }
-        .padding(.vertical, Spacing.tight)
-    }
-
-    /// The row's one project-specific fact: how many words are bleeped.
-    /// A red stamp when there are bleeps, quiet fineprint otherwise.
-    @ViewBuilder
-    private var censorStatus: some View {
-        let tokens = project.tokens
-        if tokens.isEmpty {
-            Text("Not transcribed yet")
-                .font(.bleepFineprint)
-                .foregroundStyle(.secondary)
-        } else {
-            let bleeps = tokens.count(where: \.isCensored)
-            if bleeps == 0 {
-                Text("No profanity found")
-                    .font(.bleepFineprint)
-                    .foregroundStyle(.secondary)
-            } else {
-                Text(bleeps == 1 ? "1 BLEEP" : "\(bleeps) BLEEPS")
-                    .font(.bleepFineprint)
+    /// Hero-sized invitation shown before the first import.
+    private var firstImportCard: some View {
+        Button {
+            showsFileImporter = true
+        } label: {
+            VStack(spacing: Spacing.compact) {
+                Image(systemName: "arrow.down.circle")
+                    .font(.bleepTransportGlyph)
                     .foregroundStyle(Color.bleepAccent)
-                    .padding(.horizontal, Spacing.tight)
-                    .padding(.vertical, Spacing.hairline)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: Radius.control)
-                            .strokeBorder(Color.bleepAccent)
-                    )
-                    .accessibilityLabel(bleeps == 1 ? "1 bleep" : "\(bleeps) bleeps")
+                Text("Drop in your first Reel")
+                    .font(.bleepEmphasis)
+                (Text("It gets transcribed and the ")
+                    + Text("████").foregroundStyle(Color.bleepAccent)
+                    + Text(" found for you — or browse files."))
+                    .font(.bleepMetadata)
+                    .foregroundStyle(.secondary)
+                    .accessibilityLabel("It gets transcribed and the profanity found for you — or browse files.")
             }
+            .multilineTextAlignment(.center)
+            .padding(Spacing.medium)
+            .frame(maxWidth: .infinity)
+            .frame(height: ThumbnailSize.heroHeight)
+            .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: Radius.card))
+            .overlay(
+                RoundedRectangle(cornerRadius: Radius.card)
+                    .strokeBorder(.separator)
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var privacyFootnote: some View {
+        Label(
+            "Everything happens on this iPhone. Your video never leaves the device.",
+            systemImage: "lock.iphone"
+        )
+        .font(.bleepFineprint)
+        .foregroundStyle(.secondary)
+        .frame(maxWidth: .infinity)
+        .multilineTextAlignment(.center)
+    }
+
+    // MARK: Deletion
+
+    private func deleteMenuButton(for project: Project) -> some View {
+        Button("Delete Project…", systemImage: "trash", role: .destructive) {
+            pendingDeletion = project
+        }
+    }
+
+    private func delete(_ project: Project) {
+        do {
+            try environment.projectStore.delete(project)
+        } catch {
+            Logger.storage.error("Failed to delete project: \(error.localizedDescription)")
+            deleteFailureMessage = error.localizedDescription
         }
     }
 }
 
-/// A frame from the project's source video, letterboxed on the video
-/// backdrop while it loads (or when the source can't be read).
-private struct ProjectThumbnailView: View {
+/// The most recent project as a full-width card: thumbnail backdrop,
+/// duration chip, bleep stats, and a Resume pill.
+private struct ContinueEditingCard: View {
     let project: Project
+    /// "1080p · 60fps", loaded from the source video's track.
+    @State private var formatText: String?
+
+    var body: some View {
+        SourceThumbnailView(
+            fileName: project.sourceFileName,
+            durationSeconds: project.durationSeconds,
+            maxPixels: ThumbnailSize.heroMaxPixels
+        )
+        .frame(maxWidth: .infinity)
+        .frame(height: ThumbnailSize.heroHeight)
+        .overlay {
+            LinearGradient(
+                colors: [.clear, Color.bleepScrim],
+                startPoint: .center,
+                endPoint: .bottom
+            )
+        }
+        .overlay(alignment: .topTrailing) {
+            TimecodeChip(seconds: project.durationSeconds)
+                .padding(Spacing.compact)
+        }
+        .overlay(alignment: .bottom) {
+            HStack(alignment: .bottom, spacing: Spacing.standard) {
+                VStack(alignment: .leading, spacing: Spacing.tight) {
+                    Text(project.title)
+                        .font(.bleepEmphasis)
+                        .foregroundStyle(Color.bleepOnVideo)
+                        .lineLimit(1)
+                    statsLine
+                }
+                Spacer()
+                Label("Resume", systemImage: "play.fill")
+                    .font(.bleepControlLabel)
+                    .bold()
+                    .foregroundStyle(Color.bleepOnAccent)
+                    .padding(.horizontal, Spacing.standard)
+                    .padding(.vertical, Spacing.compact)
+                    .background(Color.bleepAccent, in: Capsule())
+            }
+            .padding(Spacing.standard)
+        }
+        .clipShape(RoundedRectangle(cornerRadius: Radius.card))
+        .task(id: project.sourceFileName) {
+            formatText = await Self.loadFormat(fileName: project.sourceFileName)
+        }
+    }
+
+    private var statsLine: some View {
+        let tokens = project.tokens
+        let bleeps = tokens.count(where: \.isCensored)
+        let review = tokens.count { $0.detectedProfane && $0.userOverride == nil }
+        var line: Text
+        if tokens.isEmpty {
+            line = Text("Not transcribed yet")
+        } else {
+            line = Text(bleeps == 1 ? "1 bleep" : "\(bleeps) bleeps")
+                .foregroundStyle(Color.bleepAccent)
+            if review > 0 {
+                line = line + Text(" · \(review) to review")
+            }
+        }
+        if let formatText {
+            line = line + Text(" · \(formatText)")
+        }
+        return line
+            .font(.bleepMetadata)
+            .foregroundStyle(Color.bleepOnVideo)
+    }
+
+    private nonisolated static func loadFormat(fileName: String) async -> String? {
+        guard let url = try? ProjectStore.sourceURL(forFileName: fileName),
+              let track = try? await AVURLAsset(url: url).loadTracks(withMediaType: .video).first,
+              let (size, frameRate) = try? await track.load(.naturalSize, .nominalFrameRate)
+        else { return nil }
+        let lines = Int(min(abs(size.width), abs(size.height)).rounded())
+        return "\(lines)p · \(Int(frameRate.rounded()))fps"
+    }
+}
+
+/// One tile in the all-projects grid: thumbnail, bleep-count badge,
+/// duration chip, and the title beneath.
+private struct ProjectGridCard: View {
+    let project: Project
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: Spacing.tight) {
+            SourceThumbnailView(
+                fileName: project.sourceFileName,
+                durationSeconds: project.durationSeconds,
+                maxPixels: ThumbnailSize.gridMaxPixels
+            )
+            .frame(maxWidth: .infinity)
+            .frame(height: ThumbnailSize.gridHeight)
+            .overlay(alignment: .topLeading) {
+                bleepBadge
+                    .padding(Spacing.tight)
+            }
+            .overlay(alignment: .bottomTrailing) {
+                TimecodeChip(seconds: project.durationSeconds)
+                    .padding(Spacing.tight)
+            }
+            .clipShape(RoundedRectangle(cornerRadius: Radius.card))
+            Text(project.title)
+                .font(.bleepMetadata)
+                .lineLimit(1)
+        }
+    }
+
+    @ViewBuilder
+    private var bleepBadge: some View {
+        let bleeps = project.tokens.count(where: \.isCensored)
+        if bleeps > 0 {
+            Text(bleeps == 1 ? "1 BLEEP" : "\(bleeps) BLEEPS")
+                .font(.bleepFineprint)
+                .bold()
+                .foregroundStyle(Color.bleepOnAccent)
+                .padding(.horizontal, Spacing.tight)
+                .padding(.vertical, Spacing.hairline)
+                .background(Color.bleepAccent, in: Capsule())
+                .accessibilityLabel(bleeps == 1 ? "1 bleep" : "\(bleeps) bleeps")
+        }
+    }
+}
+
+/// A duration readout on a scrim capsule, legible over any thumbnail.
+private struct TimecodeChip: View {
+    let seconds: Double
+
+    var body: some View {
+        Text(seconds.timecodeString)
+            .font(.bleepTimecode)
+            .foregroundStyle(Color.bleepOnVideo)
+            .padding(.horizontal, Spacing.tight)
+            .padding(.vertical, Spacing.hairline)
+            .background(Color.bleepScrim, in: Capsule())
+    }
+}
+
+/// A frame from a project's source video, letterboxed on the video
+/// backdrop while it loads (or when the source can't be read).
+private struct SourceThumbnailView: View {
+    let fileName: String
+    let durationSeconds: Double
+    let maxPixels: CGFloat
     @State private var thumbnail: CGImage?
 
     var body: some View {
@@ -316,17 +474,12 @@ private struct ProjectThumbnailView: View {
                     .foregroundStyle(Color.bleepOnVideo)
             }
         }
-        .frame(width: ThumbnailSize.projectWidth, height: ThumbnailSize.projectHeight)
-        .clipShape(RoundedRectangle(cornerRadius: Radius.control))
-        .overlay(
-            RoundedRectangle(cornerRadius: Radius.control)
-                .strokeBorder(.separator)
-        )
         .accessibilityHidden(true)
-        .task(id: project.sourceFileName) {
+        .task(id: fileName) {
             thumbnail = await Self.loadThumbnail(
-                fileName: project.sourceFileName,
-                durationSeconds: project.durationSeconds
+                fileName: fileName,
+                durationSeconds: durationSeconds,
+                maxPixels: maxPixels
             )
         }
     }
@@ -335,17 +488,27 @@ private struct ProjectThumbnailView: View {
     /// fade-in. Any failure just leaves the placeholder in place.
     private nonisolated static func loadThumbnail(
         fileName: String,
-        durationSeconds: Double
+        durationSeconds: Double,
+        maxPixels: CGFloat
     ) async -> CGImage? {
         guard let url = try? ProjectStore.sourceURL(forFileName: fileName) else { return nil }
         let generator = AVAssetImageGenerator(asset: AVURLAsset(url: url))
         generator.appliesPreferredTrackTransform = true
-        generator.maximumSize = CGSize(
-            width: ThumbnailSize.projectMaxPixels,
-            height: ThumbnailSize.projectMaxPixels
-        )
+        generator.maximumSize = CGSize(width: maxPixels, height: maxPixels)
         let time = CMTime(seconds: durationSeconds * 0.1, preferredTimescale: 600)
         return try? await generator.image(at: time).image
     }
 }
 
+private extension View {
+    /// A navigation-bar subtitle under the title, on OS versions that
+    /// can render one; a no-op below iOS 26 and for empty text.
+    @ViewBuilder
+    func mastheadTagline(_ text: String) -> some View {
+        if #available(iOS 26.0, *), !text.isEmpty {
+            navigationSubtitle(text)
+        } else {
+            self
+        }
+    }
+}

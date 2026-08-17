@@ -6,9 +6,9 @@
 import SwiftUI
 import UIKit
 
-/// Design tokens for the "Redaction Desk" direction: ink-on-paper
-/// monochrome, a single proofreader-red accent, and sharp print-like
-/// geometry. Every color, spacing value, corner radius, and font style
+/// Design tokens for the "Studio Booth" direction: a dark studio
+/// surface with a single bleep-yellow accent — the on-air warning
+/// light. Every color, spacing value, corner radius, and font style
 /// the UI uses is defined here — views reference tokens, never literals.
 ///
 /// System semantic colors (`.primary`, `.secondary`, `.tint`) are used
@@ -17,12 +17,15 @@ import UIKit
 // MARK: - Colors
 
 extension Color {
-    /// The single accent — proofreader red (asset: AccentColor). Marks
+    /// The single accent — bleep yellow (asset: AccentColor). Marks
     /// anything censored or interactive; also drives the app-wide tint.
     /// Read straight from the asset: on iOS 26 the NSAccentColorName
     /// route was observed resolving to default blue at runtime, so the
     /// app applies this as an explicit root tint instead.
     static let bleepAccent = Color("AccentColor")
+    /// Text and glyphs sitting on an accent-filled surface — black, so
+    /// labels hold contrast on the yellow (asset: OnAccent).
+    static let bleepOnAccent = Color(.onAccent)
     /// Dimming layer between the video and full-screen state overlays
     /// (asset: VideoScrim).
     static let bleepScrim = Color(.videoScrim)
@@ -69,19 +72,20 @@ enum TapTarget {
 
 // MARK: - Corner radii
 
-/// Sharp, print-like geometry. Two values only.
 enum Radius {
     /// Rectangles: bars, rules, redactions.
     static let sharp: CGFloat = 0
-    /// Interactive controls: near-rectangles with just enough relief.
+    /// Small inline controls and badges.
     static let control: CGFloat = 2
+    /// Cards: project tiles and the continue-editing hero.
+    static let card: CGFloat = 16
 }
 
 // MARK: - Typography
 
 extension Font {
-    /// New York bold — screen titles and result headlines (the masthead).
-    static let bleepMasthead = Font.system(.title2, design: .serif, weight: .bold)
+    /// Bold sans — screen titles and result headlines.
+    static let bleepMasthead = Font.system(.title2, weight: .bold)
     /// Emphasized standalone line: loading messages, export percentage.
     static let bleepEmphasis = Font.headline
     /// Supporting prose one step under body.
@@ -104,14 +108,16 @@ extension Font {
 
 // MARK: - Thumbnails
 
-/// Fixed frames for video thumbnails in lists.
+/// Fixed frames for video thumbnails on the dashboard.
 enum ThumbnailSize {
-    /// Project-row thumbnail width.
-    static let projectWidth: CGFloat = 60
-    /// Project-row thumbnail height — 3:4, matching portrait Reels.
-    static let projectHeight: CGFloat = 80
-    /// Decode cap for generated thumbnails (3× the display height).
-    static let projectMaxPixels: CGFloat = 240
+    /// The continue-editing hero card's height.
+    static let heroHeight: CGFloat = 220
+    /// A project grid tile's image height.
+    static let gridHeight: CGFloat = 110
+    /// Decode cap for the hero thumbnail (roughly full width at 3×).
+    static let heroMaxPixels: CGFloat = 1200
+    /// Decode cap for grid tile thumbnails.
+    static let gridMaxPixels: CGFloat = 540
 }
 
 // MARK: - Glyph sizes
