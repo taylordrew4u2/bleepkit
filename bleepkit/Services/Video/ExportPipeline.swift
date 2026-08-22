@@ -39,6 +39,8 @@ struct ExportPipeline {
     /// Exports the censored video to a scratch `.mp4` and returns its URL.
     ///
     /// - Parameters:
+    ///   - maxDurationSeconds: When set, only the first this-many seconds
+    ///     are rendered — the free tier's export cap.
     ///   - buildOverlayLayers: Builds the burn-in trees (overlay below,
     ///     captions on top) for the given asset duration and output size —
     ///     the source's native size, untouched. Must come from the same
@@ -50,6 +52,7 @@ struct ExportPipeline {
         sourceURL: URL,
         ranges: [CensorRange],
         beepSettings: BeepSettings,
+        maxDurationSeconds: Double? = nil,
         buildOverlayLayers: @MainActor (Double, CGSize) -> [CALayer],
         progress: @escaping @MainActor (Double) -> Void
     ) async throws -> URL {
@@ -90,6 +93,13 @@ struct ExportPipeline {
         session.videoComposition = built.videoComposition
         session.audioMix = built.audioMix
         session.shouldOptimizeForNetworkUse = true
+        if let maxDurationSeconds, maxDurationSeconds < built.durationSeconds {
+            session.timeRange = CMTimeRange(
+                start: .zero,
+                duration: CMTime(seconds: maxDurationSeconds, preferredTimescale: 600)
+            )
+            Logger.export.info("Free-tier export capped at \(maxDurationSeconds, format: .fixed(precision: 0))s")
+        }
 
         let outputURL = tempFiles.makeScratchURL(fileExtension: "mp4")
 

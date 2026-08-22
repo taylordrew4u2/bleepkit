@@ -9,6 +9,8 @@ import SwiftUI
 /// the real failure reason with retry.
 struct ExportView: View {
     let editor: EditorViewModel
+    /// Free-tier cap in seconds; nil exports the full length.
+    var limitSeconds: Double?
     @Environment(AppEnvironment.self) private var environment
     @Environment(\.dismiss) private var dismiss
     @State private var viewModel: ExportViewModel?
@@ -56,7 +58,11 @@ struct ExportView: View {
         }
         .task {
             if viewModel == nil {
-                let model = ExportViewModel(editor: editor, environment: environment)
+                let model = ExportViewModel(
+                    editor: editor,
+                    environment: environment,
+                    limitSeconds: limitSeconds
+                )
                 viewModel = model
                 model.startExport()
             }
@@ -90,6 +96,11 @@ struct ExportView: View {
                 Text("Exporting… \(Int((fraction * 100).rounded()))%")
                     .font(.bleepEmphasis)
                     .monospacedDigit()
+                if let limit = viewModel.limitSeconds {
+                    Text("Free export — first \(Int(limit)) seconds")
+                        .font(.bleepFineprint)
+                        .foregroundStyle(.secondary)
+                }
                 Button("Cancel", role: .cancel) {
                     viewModel.cancel()
                 }

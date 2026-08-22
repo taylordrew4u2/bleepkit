@@ -32,9 +32,12 @@ final class ExportViewModel {
     private let photoLibraryWriter: PhotoLibraryWriter
     private let tempFiles: TempFileManager
     private var exportTask: Task<Void, Never>?
+    /// Free-tier cap in seconds; nil exports the full length.
+    let limitSeconds: Double?
 
-    init(editor: EditorViewModel, environment: AppEnvironment) {
+    init(editor: EditorViewModel, environment: AppEnvironment, limitSeconds: Double? = nil) {
         self.editor = editor
+        self.limitSeconds = limitSeconds
         pipeline = ExportPipeline(
             audioCensorBuilder: environment.audioCensorBuilder,
             tempFiles: environment.tempFiles
@@ -77,6 +80,7 @@ final class ExportViewModel {
                 sourceURL: sourceURL,
                 ranges: editor.censorRanges,
                 beepSettings: project.beepSettings,
+                maxDurationSeconds: limitSeconds,
                 buildOverlayLayers: { [editor] _, renderSize in
                     // Identical builders to the preview, at the output's
                     // native size.

@@ -17,6 +17,8 @@ import UIKit
 struct BleepKitApp: App {
     /// The dependency container, or the error that prevented it from being built.
     private let bootstrap: Result<AppEnvironment, Error>
+    /// The animated splash shown once per cold launch, over the live app.
+    @State private var showsLaunchSplash = true
 
     init() {
         let result = Result { try AppEnvironment() }
@@ -29,7 +31,7 @@ struct BleepKitApp: App {
 
     var body: some Scene {
         WindowGroup {
-            Group {
+            ZStack {
                 switch bootstrap {
                 case .success(let environment):
                     RootView()
@@ -41,6 +43,15 @@ struct BleepKitApp: App {
                         message: error.localizedDescription
                     )
                 }
+                if showsLaunchSplash {
+                    LaunchSplashView {
+                        showsLaunchSplash = false
+                    }
+                    // Decorative only: taps land on the app beneath, so
+                    // the splash never delays a fast-fingered user (or
+                    // the UI smoke test).
+                    .allowsHitTesting(false)
+                }
             }
             // Explicit root tint: the AccentColor asset alone isn't honored
             // at runtime on iOS 26 (verified in the simulator), so every
@@ -49,6 +60,11 @@ struct BleepKitApp: App {
             // The Studio Booth direction is dark-only — black surfaces
             // under the bleep-yellow accent, in both system appearances.
             .preferredColorScheme(.dark)
+            .task {
+                if case .success(let environment) = bootstrap {
+                    environment.startStoreObservation()
+                }
+            }
         }
     }
 }

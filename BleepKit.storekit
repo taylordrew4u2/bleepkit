@@ -1,0 +1,38 @@
+{
+  "identifier" : "8A1F2C3D-0000-4000-8000-BLEEPKITPRO1",
+  "nonRenewingSubscriptions" : [
+
+  ],
+  "products" : [
+    {
+      "displayPrice" : "6.99",
+      "familyShareable" : true,
+      "internalID" : "6F0E9D8C-0000-4000-8000-BLEEPKITPRO2",
+      "localizations" : [
+        {
+          "description" : "Unlock full-length export.",
+          "displayName" : "BleepKit Pro",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "comedy.bleepkit.pro",
+      "referenceName" : "BleepKit Pro",
+      "type" : "NonConsumable"
+    }
+  ],
+  "settings" : {
+    "_failTransactionsEnabled" : false,
+    "_locale" : "en_US",
+    "_storefront" : "USA",
+    "_storeKitErrors" : [
+
+    ]
+  },
+  "subscriptionGroups" : [
+
+  ],
+  "version" : {
+    "major" : 3,
+    "minor" : 0
+  }
+}
