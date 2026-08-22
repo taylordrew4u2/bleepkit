@@ -28,6 +28,7 @@ struct PaywallView: View {
     @State private var productUnavailable = false
     @State private var isWorking = false
     @State private var noticeMessage: String?
+    @State private var showsCodeRedemption = false
 
     var body: some View {
         NavigationStack {
@@ -45,8 +46,13 @@ struct PaywallView: View {
                 }
                 .buttonStyle(.bordered)
                 .buttonBorderShape(.capsule)
-                Button("Restore Purchases") {
-                    Task { await restore() }
+                HStack(spacing: Spacing.roomy) {
+                    Button("Restore Purchases") {
+                        Task { await restore() }
+                    }
+                    Button("Redeem a Code") {
+                        showsCodeRedemption = true
+                    }
                 }
                 .font(.bleepControlLabel)
                 .disabled(isWorking)
@@ -72,7 +78,30 @@ struct PaywallView: View {
         } message: {
             Text(noticeMessage ?? "")
         }
+        // The system sheet for App Store offer codes (Connect can issue
+        // them free or discounted for the Pro non-consumable). A custom
+        // code-entry UI isn't permitted — only this sheet.
+        .offerCodeRedemption(isPresented: $showsCodeRedemption) { result in
+            Task { await handleRedemption(result) }
+        }
         .task { await loadProduct() }
+    }
+
+    /// A redeemed code arrives like any purchase: confirm the entitlement
+    /// from StoreKit, then continue into the unlocked export. The launch
+    /// `Transaction.updates` listener covers codes redeemed in the App
+    /// Store app as well.
+    private func handleRedemption(_ result: Result<Void, any Error>) async {
+        switch result {
+        case .success:
+            let isPro = await StoreService.hasVerifiedEntitlement()
+            environment.entitlement.update(isPro: isPro)
+            if isPro {
+                onContinue(.unlocked)
+            }
+        case .failure(let error):
+            noticeMessage = error.localizedDescription
+        }
     }
 
     private var header: some View {
