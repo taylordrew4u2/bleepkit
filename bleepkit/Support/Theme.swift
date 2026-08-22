@@ -34,6 +34,10 @@ extension Color {
     static let bleepOnVideo = Color(.onVideo)
     /// Letterbox surround behind the video preview (asset: VideoBackdrop).
     static let bleepVideoBackdrop = Color(.videoBackdrop)
+    /// The animated splash's backdrop — pure black in both appearances,
+    /// matching the static launch screen for a seamless cold start
+    /// (asset: LaunchBackground).
+    static let bleepLaunchBackground = Color(.launchBackground)
 }
 
 extension UIColor {
@@ -118,6 +122,29 @@ enum ThumbnailSize {
     static let heroMaxPixels: CGFloat = 1200
     /// Decode cap for grid tile thumbnails.
     static let gridMaxPixels: CGFloat = 540
+}
+
+// MARK: - Launch splash
+
+/// Geometry of the launch splash's meter-into-speech-bubble animation.
+enum SplashMetrics {
+    /// Width of one audio-meter bar.
+    static let barWidth: CGFloat = 8
+    /// Peak meter-bar height.
+    static let meterHeight: CGFloat = 96
+    /// Number of meter bars.
+    static let barCount: Int = 12
+    /// The app icon's speech bubble, tail included, that the meter
+    /// collapses into.
+    static let bubbleWidth: CGFloat = 250
+    /// Its height.
+    static let bubbleHeight: CGFloat = 190
+}
+
+extension Font {
+    /// The splash's grawlix wordmark, sized to the icon bubble. Fixed
+    /// size on purpose: it's decorative art, hidden from accessibility.
+    static let bleepSplashGrawlix = Font.system(size: 56, weight: .bold)
 }
 
 // MARK: - Glyph sizes
