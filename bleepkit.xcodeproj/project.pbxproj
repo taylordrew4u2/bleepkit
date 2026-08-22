@@ -279,6 +279,7 @@
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = bleepkit/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = BleepKit;
 				INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace = NO;
 				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "BleepKit saves your finished, censored video back to your Photo Library in a “BleepKit” album.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "BleepKit needs access to your videos so you can pick a Reel to caption and censor.";
@@ -328,6 +329,7 @@
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = bleepkit/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = BleepKit;
 				INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace = NO;
 				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "BleepKit saves your finished, censored video back to your Photo Library in a “BleepKit” album.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "BleepKit needs access to your videos so you can pick a Reel to caption and censor.";
