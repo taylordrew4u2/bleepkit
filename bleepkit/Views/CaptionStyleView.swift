@@ -4,6 +4,7 @@
 //
 
 import SwiftUI
+import UIKit
 
 /// Caption appearance controls. Every change persists immediately and
 /// refreshes the preview's layer trees; iOS-bundled fonts only.
@@ -13,11 +14,16 @@ struct CaptionStyleView: View {
     var body: some View {
         Form {
             Section("Font") {
+                // Pushed-list style so every option can render in its own
+                // typeface — menu pickers ignore per-item fonts.
                 Picker("Family", selection: binding(\.fontFamily)) {
                     ForEach(CaptionStyle.FontFamily.allCases, id: \.self) { family in
-                        Text(family.displayName).tag(family)
+                        Text(family.displayName)
+                            .font(Self.previewFont(for: family))
+                            .tag(family)
                     }
                 }
+                .pickerStyle(.navigationLink)
                 SliderRow(
                     title: "Size",
                     value: doubleBinding(get: { Double($0.fontSize) }, set: { $0.fontSize = CGFloat($1) }),
@@ -121,6 +127,13 @@ struct CaptionStyleView: View {
         }
         .navigationTitle("Caption Style")
         .navigationBarTitleDisplayMode(.inline)
+    }
+
+    /// The caption font at body size, so the picker previews each family
+    /// with Dynamic Type still in charge of sizing.
+    private static func previewFont(for family: CaptionStyle.FontFamily) -> Font {
+        let size = UIFont.preferredFont(forTextStyle: .body).pointSize
+        return Font(CaptionLayerBuilder.uiFont(family: family, size: size, weight: 600))
     }
 
     /// A binding straight into one caption-style property; writing persists

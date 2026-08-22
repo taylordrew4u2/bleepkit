@@ -55,19 +55,37 @@ private struct EditorContentView: View {
     @State private var dismissedLocaleNotice = false
     @ScaledMetric(relativeTo: .largeTitle) private var playGlyphSize = GlyphSize.play
 
+    /// A style sheet is up: the editor must fit the space above it so the
+    /// whole video — captions live near the bottom of the frame — stays
+    /// visible while styling.
+    private var isStyleSheetVisible: Bool {
+        showsCaptionsSheet || showsCensoringSheet
+    }
+
+    /// How much of the editor a `.medium` sheet covers; the content
+    /// compresses by this much while one is up.
+    private static let mediumSheetFraction: CGFloat = 0.5
+
     var body: some View {
-        VStack(spacing: Spacing.standard) {
-            previewArea
-            if let saveError = viewModel.saveErrorMessage {
-                saveErrorBanner(saveError)
+        GeometryReader { proxy in
+            VStack(spacing: Spacing.standard) {
+                previewArea
+                if let saveError = viewModel.saveErrorMessage {
+                    saveErrorBanner(saveError)
+                }
+                if let notice = viewModel.localeNotice, !dismissedLocaleNotice {
+                    localeNoticeBanner(notice)
+                }
+                if viewModel.project.overlayEnabled && !viewModel.project.overlayFollowsCaption {
+                    stickerPlacementHint
+                }
+                transportControls
             }
-            if let notice = viewModel.localeNotice, !dismissedLocaleNotice {
-                localeNoticeBanner(notice)
-            }
-            if viewModel.project.overlayEnabled && !viewModel.project.overlayFollowsCaption {
-                stickerPlacementHint
-            }
-            transportControls
+            .padding(
+                .bottom,
+                isStyleSheetVisible ? proxy.size.height * Self.mediumSheetFraction : 0
+            )
+            .animation(.easeInOut(duration: 0.25), value: isStyleSheetVisible)
         }
         .padding(.bottom, Spacing.compact)
         .toolbar {

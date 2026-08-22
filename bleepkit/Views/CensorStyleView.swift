@@ -40,6 +40,19 @@ struct CensorStyleView: View {
             }
 
             Section {
+                if viewModel.project.tokens.isEmpty {
+                    Text("Transcribe the video to pick words.")
+                        .foregroundStyle(.secondary)
+                } else {
+                    WordChipGrid(viewModel: viewModel)
+                }
+            } header: {
+                Text("Words to bleep")
+            } footer: {
+                Text("Tap a word to bleep or unbleep it — the preview behind this sheet updates right away. Timing details and automatic-detection controls live in the Transcript.")
+            }
+
+            Section {
                 Toggle("Show sticker over video", isOn: overlayEnabledBinding)
                 if viewModel.project.overlayEnabled {
                     Picker("Sticker", selection: overlayStickerBinding) {
@@ -201,5 +214,46 @@ struct CensorStyleView: View {
                 viewModel.setBeepSettings(settings)
             }
         )
+    }
+}
+
+/// Every transcript word as a tappable chip: bleeped words are filled
+/// accent capsules, clean words are quiet fills. Tapping toggles the
+/// word's override and seeks the preview to it, so the change is heard
+/// and seen immediately behind the sheet.
+private struct WordChipGrid: View {
+    let viewModel: EditorViewModel
+
+    /// Uniform cell width the adaptive grid packs chips into.
+    private static let chipMinWidth: CGFloat = 84
+
+    var body: some View {
+        LazyVGrid(
+            columns: [GridItem(.adaptive(minimum: Self.chipMinWidth), spacing: Spacing.compact)],
+            spacing: Spacing.compact
+        ) {
+            ForEach(viewModel.project.tokens) { token in
+                Button {
+                    viewModel.setOverride(forTokenID: token.id, to: !token.isCensored)
+                    viewModel.seekToToken(token)
+                } label: {
+                    Text(token.text)
+                        .font(.bleepControlLabel)
+                        .lineLimit(1)
+                        .frame(maxWidth: .infinity, minHeight: TapTarget.minimum)
+                        .foregroundStyle(token.isCensored ? Color.bleepOnAccent : .primary)
+                        .background(
+                            token.isCensored
+                                ? AnyShapeStyle(Color.bleepAccent)
+                                : AnyShapeStyle(.tertiary),
+                            in: Capsule()
+                        )
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(token.isCensored ? "\(token.text), bleeped" : "\(token.text), not bleeped")
+                .accessibilityHint("Toggles the bleep and plays the word")
+            }
+        }
+        .padding(.vertical, Spacing.tight)
     }
 }
