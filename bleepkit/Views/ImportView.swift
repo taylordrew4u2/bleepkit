@@ -210,14 +210,18 @@ private struct ImportIdleView: View {
                     .foregroundStyle(.secondary)
                     .textCase(.uppercase)
             }
-            NavigationLink {
-                EditorView(project: project)
-            } label: {
-                ContinueEditingCard(project: project)
-            }
-            .buttonStyle(.plain)
-            .contextMenu {
-                deleteMenuButton(for: project)
+            ZStack(alignment: .topLeading) {
+                NavigationLink {
+                    EditorView(project: project)
+                } label: {
+                    ContinueEditingCard(project: project)
+                }
+                .buttonStyle(.plain)
+                .contextMenu {
+                    deleteMenuButton(for: project)
+                }
+                // Deletion must be discoverable, not just a long-press.
+                projectActionsMenu(for: project)
             }
         }
     }
@@ -241,14 +245,17 @@ private struct ImportIdleView: View {
             ) {
                 // The hero above is the newest project; the grid holds the rest.
                 ForEach(Array(projects.dropFirst())) { project in
-                    NavigationLink {
-                        EditorView(project: project)
-                    } label: {
-                        ProjectGridCard(project: project)
-                    }
-                    .buttonStyle(.plain)
-                    .contextMenu {
-                        deleteMenuButton(for: project)
+                    ZStack(alignment: .topTrailing) {
+                        NavigationLink {
+                            EditorView(project: project)
+                        } label: {
+                            ProjectGridCard(project: project)
+                        }
+                        .buttonStyle(.plain)
+                        .contextMenu {
+                            deleteMenuButton(for: project)
+                        }
+                        projectActionsMenu(for: project)
                     }
                 }
             }
@@ -288,7 +295,7 @@ private struct ImportIdleView: View {
 
     private var privacyFootnote: some View {
         Label(
-            "Everything happens on this iPhone. Your video never leaves the device.",
+            "Everything happens on this device. Your video never leaves it.",
             systemImage: "lock.iphone"
         )
         .font(.bleepFineprint)
@@ -298,6 +305,22 @@ private struct ImportIdleView: View {
     }
 
     // MARK: Deletion
+
+    /// The always-visible actions button on a project card — the
+    /// discoverable route to the trash (long-press still works too).
+    private func projectActionsMenu(for project: Project) -> some View {
+        Menu {
+            deleteMenuButton(for: project)
+        } label: {
+            Image(systemName: "ellipsis.circle.fill")
+                .symbolRenderingMode(.hierarchical)
+                .font(.bleepEmphasis)
+                .foregroundStyle(Color.bleepOnVideo)
+                .frame(minWidth: TapTarget.minimum, minHeight: TapTarget.minimum)
+                .contentShape(Rectangle())
+        }
+        .accessibilityLabel("Actions for \(project.title)")
+    }
 
     /// Trashing is recoverable, so no confirmation stands in the way;
     /// permanent deletion (with confirmation) lives in the Trash screen.

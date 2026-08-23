@@ -17,7 +17,7 @@ struct FAQView: View {
 
     private static let entries: [Entry] = [
         Entry(
-            question: "Does my video leave my iPhone?",
+            question: "Does my video leave my device?",
             answer: "No. Importing, transcription, profanity detection, editing, and export all run on this device. The only network feature is the App Store purchase itself."
         ),
         Entry(
@@ -49,8 +49,8 @@ struct FAQView: View {
             answer: "Into a “BleepKit” album in your Photo Library, ready to upload. If Photos access is denied you can share the file directly instead."
         ),
         Entry(
-            question: "What happens when I delete a project?",
-            answer: "It moves to the Trash and keeps its video. Restore it any time, or empty the trash to delete projects and their videos permanently."
+            question: "How do I delete a video?",
+            answer: "Tap the ⋯ button on any project card (or long-press the card) and choose Move to Trash. It keeps its video in the Trash — restore it any time, or empty the trash to delete projects and their videos permanently."
         ),
     ]
 
