@@ -59,6 +59,9 @@ struct PaywallView: View {
             }
             .padding(.horizontal)
             .padding(.bottom, Spacing.medium)
+            // A centered column on iPad-sized sheets.
+            .frame(maxWidth: ContentWidth.paywall)
+            .frame(maxWidth: .infinity)
             .navigationTitle("BleepKit Pro")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

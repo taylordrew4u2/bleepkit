@@ -6,10 +6,10 @@
 import SwiftUI
 import UIKit
 
-/// Design tokens for the "Studio Booth" direction: a dark studio
-/// surface with a single bleep-yellow accent — the on-air warning
-/// light. Every color, spacing value, corner radius, and font style
-/// the UI uses is defined here — views reference tokens, never literals.
+/// Design tokens for the "Cutting Room" direction: monochrome minimal,
+/// white on black like the app icon — one tool, one job, no color.
+/// Every color, spacing value, corner radius, and font style the UI
+/// uses is defined here — views reference tokens, never literals.
 ///
 /// System semantic colors (`.primary`, `.secondary`, `.tint`) are used
 /// directly at call sites; they adapt on their own and are not literals.
@@ -17,14 +17,15 @@ import UIKit
 // MARK: - Colors
 
 extension Color {
-    /// The single accent — bleep yellow (asset: AccentColor). Marks
-    /// anything censored or interactive; also drives the app-wide tint.
+    /// The single accent — plain white, the icon's bubble (asset:
+    /// AccentColor). Marks anything censored or interactive; also
+    /// drives the app-wide tint.
     /// Read straight from the asset: on iOS 26 the NSAccentColorName
     /// route was observed resolving to default blue at runtime, so the
     /// app applies this as an explicit root tint instead.
     static let bleepAccent = Color("AccentColor")
-    /// Text and glyphs sitting on an accent-filled surface — black, so
-    /// labels hold contrast on the yellow (asset: OnAccent).
+    /// Text and glyphs sitting on an accent-filled surface — black on
+    /// the white, like the icon's grawlix (asset: OnAccent).
     static let bleepOnAccent = Color(.onAccent)
     /// Dimming layer between the video and full-screen state overlays
     /// (asset: VideoScrim).
@@ -67,6 +68,22 @@ enum Spacing {
     static let wide: CGFloat = 32
 }
 
+// MARK: - Adaptive layout
+
+/// Width caps for regular-width (iPad, Stage Manager) layouts; compact
+/// layouts ignore them by never reaching the cap.
+enum ContentWidth {
+    /// The dashboard's centered column.
+    static let dashboard: CGFloat = 700
+    /// The style editors' trailing inspector pane.
+    static let inspector: CGFloat = 380
+    /// The paywall's centered column.
+    static let paywall: CGFloat = 440
+    /// Minimum project-grid tile width — two columns on iPhone,
+    /// more as the dashboard column allows.
+    static let gridTileMin: CGFloat = 160
+}
+
 // MARK: - Tap targets
 
 /// Minimum hit-area for interactive elements, per the HIG.
@@ -88,8 +105,8 @@ enum Radius {
 // MARK: - Typography
 
 extension Font {
-    /// Bold sans — screen titles and result headlines.
-    static let bleepMasthead = Font.system(.title2, weight: .bold)
+    /// Quiet sans — screen titles and result headlines.
+    static let bleepMasthead = Font.system(.title3, weight: .semibold)
     /// Emphasized standalone line: loading messages, export percentage.
     static let bleepEmphasis = Font.headline
     /// Supporting prose one step under body.

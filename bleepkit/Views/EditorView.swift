@@ -45,21 +45,29 @@ struct EditorView: View {
 private struct EditorContentView: View {
     let viewModel: EditorViewModel
     @Environment(AppEnvironment.self) private var environment
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @State private var showsExportSheet = false
     @State private var showsPaywall = false
     @State private var startExportOnPaywallDismiss = false
     /// Free-tier cap for the next export; nil exports full length.
     @State private var exportLimitSeconds: Double?
-    @State private var showsCaptionsSheet = false
-    @State private var showsCensoringSheet = false
+    /// Which style editor is open, if any. Compact widths present it as
+    /// a half-height sheet; regular widths as a trailing inspector so
+    /// the video keeps the rest of the screen.
+    @State private var stylePanel: EditorStylePanel?
     @State private var dismissedLocaleNotice = false
     @ScaledMetric(relativeTo: .largeTitle) private var playGlyphSize = GlyphSize.play
 
-    /// A style sheet is up: the editor must fit the space above it so the
-    /// whole video — captions live near the bottom of the frame — stays
-    /// visible while styling.
-    private var isStyleSheetVisible: Bool {
-        showsCaptionsSheet || showsCensoringSheet
+    private var isRegularWidth: Bool {
+        horizontalSizeClass == .regular
+    }
+
+    /// Compact only: a style sheet is up, so the editor must fit the
+    /// space above it — the whole video (captions live near the bottom
+    /// of the frame) stays visible while styling. Regular widths get an
+    /// inspector instead, which shares space natively.
+    private var compressesForStyleSheet: Bool {
+        stylePanel != nil && !isRegularWidth
     }
 
     /// How much of the editor a `.medium` sheet covers; the content
@@ -83,9 +91,9 @@ private struct EditorContentView: View {
             }
             .padding(
                 .bottom,
-                isStyleSheetVisible ? proxy.size.height * Self.mediumSheetFraction : 0
+                compressesForStyleSheet ? proxy.size.height * Self.mediumSheetFraction : 0
             )
-            .animation(.easeInOut(duration: 0.25), value: isStyleSheetVisible)
+            .animation(.easeInOut(duration: 0.25), value: compressesForStyleSheet)
         }
         .padding(.bottom, Spacing.compact)
         .toolbar {
@@ -122,13 +130,15 @@ private struct EditorContentView: View {
                 }
                 Spacer()
                 Button {
-                    showsCaptionsSheet = true
+                    // Tapping again closes; tapping the other switches —
+                    // the bottom bar stays reachable under the inspector.
+                    stylePanel = stylePanel == .captions ? nil : .captions
                 } label: {
                     Label("Captions", systemImage: "textformat")
                 }
                 Spacer()
                 Button {
-                    showsCensoringSheet = true
+                    stylePanel = stylePanel == .censoring ? nil : .censoring
                 } label: {
                     Label("Censoring", systemImage: "speaker.slash")
                 }
@@ -156,24 +166,15 @@ private struct EditorContentView: View {
                 showsPaywall = false
             }
         }
-        // Style editing keeps the preview visible and live: medium-detent
-        // sheets with the editor interactive behind them (audit 5.1).
-        .sheet(isPresented: $showsCaptionsSheet) {
-            NavigationStack {
-                CaptionStyleView(viewModel: viewModel)
-            }
-            .presentationDetents([.medium, .large])
-            .presentationBackgroundInteraction(.enabled(upThrough: .medium))
-            .presentationDragIndicator(.visible)
-        }
-        .sheet(isPresented: $showsCensoringSheet) {
-            NavigationStack {
-                CensorStyleView(viewModel: viewModel)
-            }
-            .presentationDetents([.medium, .large])
-            .presentationBackgroundInteraction(.enabled(upThrough: .medium))
-            .presentationDragIndicator(.visible)
-        }
+        // Style editing keeps the preview visible and live. Compact
+        // widths: a medium-detent sheet with the editor interactive
+        // behind it (audit 5.1). Regular widths (iPad, Stage Manager):
+        // a trailing inspector beside the video.
+        .modifier(StylePanelPresentation(
+            panel: $stylePanel,
+            isRegularWidth: isRegularWidth,
+            viewModel: viewModel
+        ))
     }
 
     /// True while the censored composition is genuinely building — not
@@ -379,4 +380,56 @@ private struct EditorContentView: View {
         return "Transcript · \(tokens.filter(\.isCensored).count) censored"
     }
 
+}
+
+/// The two style editors the bottom bar can open.
+private enum EditorStylePanel: String, Identifiable {
+    case captions, censoring
+    var id: String { rawValue }
+}
+
+/// Presents the open style editor as a half-height sheet on compact
+/// widths, or as a trailing inspector beside the video on regular
+/// widths — the iPad way to style while watching.
+private struct StylePanelPresentation: ViewModifier {
+    @Binding var panel: EditorStylePanel?
+    let isRegularWidth: Bool
+    let viewModel: EditorViewModel
+
+    func body(content: Content) -> some View {
+        if isRegularWidth {
+            content
+                .inspector(isPresented: Binding(
+                    get: { panel != nil },
+                    set: { if !$0 { panel = nil } }
+                )) {
+                    if let panel {
+                        NavigationStack {
+                            panelView(panel)
+                        }
+                        .inspectorColumnWidth(ContentWidth.inspector)
+                    }
+                }
+        } else {
+            content
+                .sheet(item: $panel) { panel in
+                    NavigationStack {
+                        panelView(panel)
+                    }
+                    .presentationDetents([.medium, .large])
+                    .presentationBackgroundInteraction(.enabled(upThrough: .medium))
+                    .presentationDragIndicator(.visible)
+                }
+        }
+    }
+
+    @ViewBuilder
+    private func panelView(_ panel: EditorStylePanel) -> some View {
+        switch panel {
+        case .captions:
+            CaptionStyleView(viewModel: viewModel)
+        case .censoring:
+            CensorStyleView(viewModel: viewModel)
+        }
+    }
 }
