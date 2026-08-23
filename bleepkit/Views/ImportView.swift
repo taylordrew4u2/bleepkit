@@ -54,10 +54,13 @@ struct ImportView: View {
 private struct ImportIdleView: View {
     let viewModel: ImportViewModel
     @Environment(AppEnvironment.self) private var environment
-    @Query(sort: \Project.updatedAt, order: .reverse) private var projects: [Project]
+    @Query(
+        filter: #Predicate<Project> { $0.trashedAt == nil },
+        sort: \Project.updatedAt,
+        order: .reverse
+    ) private var projects: [Project]
     @State private var photosSelection: PhotosPickerItem?
     @State private var showsFileImporter = false
-    @State private var pendingDeletion: Project?
     @State private var deleteFailureMessage: String?
 
     var body: some View {
@@ -76,32 +79,32 @@ private struct ImportIdleView: View {
             }
             .padding(.horizontal)
             .padding(.vertical, Spacing.standard)
+            // On iPad the dashboard reads as a centered column instead
+            // of stretching edge to edge.
+            .frame(maxWidth: ContentWidth.dashboard)
+            .frame(maxWidth: .infinity)
         }
         .navigationTitle(titleText)
         .navigationBarTitleDisplayMode(.inline)
         .mastheadTagline(subtitleText)
-        .confirmationDialog(
-            "Delete this project?",
-            isPresented: Binding(
-                get: { pendingDeletion != nil },
-                set: { if !$0 { pendingDeletion = nil } }
-            ),
-            titleVisibility: .visible
-        ) {
-            Button("Delete Project and Video", role: .destructive) {
-                if let pendingDeletion {
-                    delete(pendingDeletion)
+        .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                NavigationLink {
+                    FAQView()
+                } label: {
+                    Label("FAQ", systemImage: "questionmark.circle")
                 }
-                pendingDeletion = nil
             }
-            Button("Cancel", role: .cancel) {
-                pendingDeletion = nil
+            ToolbarItem(placement: .topBarTrailing) {
+                NavigationLink {
+                    TrashView()
+                } label: {
+                    Label("Trash", systemImage: "trash")
+                }
             }
-        } message: {
-            Text("The imported video and every edit are removed permanently. This can't be undone.")
         }
         .alert(
-            "Couldn't Delete Project",
+            "Couldn't Move to Trash",
             isPresented: Binding(
                 get: { deleteFailureMessage != nil },
                 set: { if !$0 { deleteFailureMessage = nil } }
@@ -186,9 +189,10 @@ private struct ImportIdleView: View {
             } label: {
                 Label("Import from Files", systemImage: "square.and.arrow.down")
                     .font(.bleepControlLabel)
+                    .frame(minHeight: TapTarget.minimum)
             }
-            .buttonStyle(.bordered)
-            .buttonBorderShape(.capsule)
+            .buttonStyle(.plain)
+            .foregroundStyle(.secondary)
             .frame(maxWidth: .infinity)
         }
     }
@@ -197,7 +201,9 @@ private struct ImportIdleView: View {
         VStack(alignment: .leading, spacing: Spacing.compact) {
             HStack(alignment: .firstTextBaseline) {
                 Text("Continue editing")
-                    .font(.bleepEmphasis)
+                    .font(.bleepControlLabel)
+                    .foregroundStyle(.secondary)
+                    .textCase(.uppercase)
                 Spacer()
                 Text("Saved \(project.updatedAt.formatted(.relative(presentation: .named)))")
                     .font(.bleepFineprint)
@@ -220,17 +226,16 @@ private struct ImportIdleView: View {
         VStack(alignment: .leading, spacing: Spacing.compact) {
             HStack(alignment: .firstTextBaseline) {
                 Text("All projects")
-                    .font(.bleepEmphasis)
+                    .font(.bleepControlLabel)
+                    .foregroundStyle(.secondary)
+                    .textCase(.uppercase)
                 Spacer()
                 Text("Recent")
                     .font(.bleepFineprint)
                     .foregroundStyle(.secondary)
             }
             LazyVGrid(
-                columns: [
-                    GridItem(.flexible(), spacing: Spacing.standard),
-                    GridItem(.flexible(), spacing: Spacing.standard),
-                ],
+                columns: [GridItem(.adaptive(minimum: ContentWidth.gridTileMin), spacing: Spacing.standard)],
                 alignment: .leading,
                 spacing: Spacing.standard
             ) {
@@ -294,18 +299,16 @@ private struct ImportIdleView: View {
 
     // MARK: Deletion
 
+    /// Trashing is recoverable, so no confirmation stands in the way;
+    /// permanent deletion (with confirmation) lives in the Trash screen.
     private func deleteMenuButton(for project: Project) -> some View {
-        Button("Delete Project…", systemImage: "trash", role: .destructive) {
-            pendingDeletion = project
-        }
-    }
-
-    private func delete(_ project: Project) {
-        do {
-            try environment.projectStore.delete(project)
-        } catch {
-            Logger.storage.error("Failed to delete project: \(error.localizedDescription)")
-            deleteFailureMessage = error.localizedDescription
+        Button("Move to Trash", systemImage: "trash", role: .destructive) {
+            do {
+                try environment.projectStore.moveToTrash(project)
+            } catch {
+                Logger.storage.error("Failed to trash project: \(error.localizedDescription)")
+                deleteFailureMessage = error.localizedDescription
+            }
         }
     }
 }

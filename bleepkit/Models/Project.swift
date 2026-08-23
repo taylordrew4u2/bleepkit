@@ -43,6 +43,10 @@ final class Project {
     var overlayFollowsCaption: Bool = false
     /// Enabled profanity severity tiers, e.g. ["mild", "strong", "slur"].
     var enabledSeverities: [String]
+    /// When the project was moved to the trash; nil for live projects.
+    /// Trashed projects keep their video on disk until the trash is
+    /// emptied, so deletion is recoverable.
+    var trashedAt: Date? = nil
 
     init(title: String, sourceFileName: String, durationSeconds: Double) {
         self.id = UUID()

@@ -81,4 +81,32 @@ final class ProjectStore {
         try context.save()
         Self.removeSource(fileName: fileName)
     }
+
+    // MARK: Trash
+
+    /// Soft-deletes: the project leaves the dashboard but its video
+    /// stays on disk, recoverable until the trash is emptied.
+    func moveToTrash(_ project: Project) throws {
+        project.trashedAt = .now
+        try context.save()
+    }
+
+    /// Returns a trashed project to the dashboard.
+    func restoreFromTrash(_ project: Project) throws {
+        project.trashedAt = nil
+        try context.save()
+    }
+
+    /// Permanently deletes every trashed project and its video.
+    func emptyTrash() throws {
+        let trashed = try context.fetch(
+            FetchDescriptor<Project>(predicate: #Predicate { $0.trashedAt != nil })
+        )
+        for project in trashed {
+            let fileName = project.sourceFileName
+            context.delete(project)
+            Self.removeSource(fileName: fileName)
+        }
+        try context.save()
+    }
 }
