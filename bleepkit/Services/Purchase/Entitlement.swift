@@ -20,39 +20,25 @@ enum FreeTier {
 /// `Transaction.currentEntitlements` on every launch and on every
 /// transaction update. The cached flag exists only so a launch that
 /// begins offline fails open when a prior verification succeeded; it is
-/// never trusted past the next StoreKit answer.
+/// never trusted past the next StoreKit answer. There is no other way
+/// to unlock Pro: every unlock originates in an App Store transaction,
+/// including offer codes redeemed through Apple's sheet.
 @MainActor
 @Observable
 final class Entitlement {
     private static let cacheKey = "entitlement.pro.lastVerified"
-    private static let promoKey = "entitlement.pro.promoUnlocked"
 
-    /// The in-app promo code that unlocks Pro without a purchase,
-    /// checked locally so it works offline and forever.
-    static let localPromoCode = "CLEANCOMEDY"
-
-    /// True when BleepKit Pro (full-length export) is unlocked, by
-    /// purchase or by promo code.
+    /// True when BleepKit Pro (full-length export) is unlocked.
     private(set) var isPro: Bool
 
     init() {
         isPro = UserDefaults.standard.bool(forKey: Self.cacheKey)
-            || UserDefaults.standard.bool(forKey: Self.promoKey)
     }
 
-    /// Records a fresh verification answer from StoreKit. A promo
-    /// unlock survives regardless of what StoreKit reports.
+    /// Records a fresh verification answer from StoreKit, which replaces
+    /// whatever the cache held.
     func update(isPro storeKitPro: Bool) {
         UserDefaults.standard.set(storeKitPro, forKey: Self.cacheKey)
-        isPro = storeKitPro || UserDefaults.standard.bool(forKey: Self.promoKey)
-    }
-
-    /// Redeems an in-app promo code; returns whether it matched.
-    func redeemLocalCode(_ code: String) -> Bool {
-        let normalized = code.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
-        guard normalized == Self.localPromoCode else { return false }
-        UserDefaults.standard.set(true, forKey: Self.promoKey)
-        isPro = true
-        return true
+        isPro = storeKitPro
     }
 }

@@ -29,8 +29,6 @@ struct PaywallView: View {
     @State private var isWorking = false
     @State private var noticeMessage: String?
     @State private var showsCodeRedemption = false
-    @State private var showsCodeEntry = false
-    @State private var codeInput = ""
 
     var body: some View {
         NavigationStack {
@@ -53,7 +51,7 @@ struct PaywallView: View {
                         Task { await restore() }
                     }
                     Button("Redeem a Code") {
-                        showsCodeEntry = true
+                        showsCodeRedemption = true
                     }
                 }
                 .font(.bleepControlLabel)
@@ -83,29 +81,11 @@ struct PaywallView: View {
         } message: {
             Text(noticeMessage ?? "")
         }
-        // BleepKit codes unlock locally; anything else falls through to
-        // Apple's offer-code sheet so App Store codes keep working.
-        .alert("Redeem a Code", isPresented: $showsCodeEntry) {
-            TextField("Code", text: $codeInput)
-                .textInputAutocapitalization(.characters)
-                .autocorrectionDisabled()
-            Button("Redeem") {
-                let entered = codeInput
-                codeInput = ""
-                if environment.entitlement.redeemLocalCode(entered) {
-                    onContinue(.unlocked)
-                } else {
-                    showsCodeRedemption = true
-                }
-            }
-            Button("Cancel", role: .cancel) {
-                codeInput = ""
-            }
-        } message: {
-            Text("Enter a BleepKit code. App Store offer codes open Apple's redemption sheet.")
-        }
         // The system sheet for App Store offer codes (Connect can issue
-        // them free or discounted for the Pro non-consumable).
+        // them free or discounted for the Pro non-consumable). This is
+        // the only redemption path: `AppStore.presentOfferCodeRedeemSheet(in:)`
+        // behind SwiftUI's modifier, so every unlock is an App Store
+        // transaction.
         .offerCodeRedemption(isPresented: $showsCodeRedemption) { result in
             Task { await handleRedemption(result) }
         }

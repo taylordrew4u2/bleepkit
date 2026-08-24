@@ -48,12 +48,17 @@ Free accounts are also limited to ~3 installed development apps at a time.
 
 The project is configured for:
 
-- iOS **18.0** deployment target, iPhone only, portrait only
+- iOS **18.6** deployment target on the `bleepkit` app target (the
+  `bleepkitUITests` target matches it, so both run on the same simulator)
+- iPhone and iPad (`TARGETED_DEVICE_FAMILY = 1,2`); portrait only on
+  iPhone, all orientations on iPad
 - **Swift 6** language mode with strict concurrency
-- Supported platforms: iPhone device and simulator only
+- Supported platforms: iPhone/iPad device and simulator only
 
-These live in the target's Build Settings; nothing needs changing for a
-normal build.
+These live in each target's Build Settings; nothing needs changing for a
+normal build. Check `IPHONEOS_DEPLOYMENT_TARGET` on the **app** target
+before submitting — a value above the current shipping iOS makes the app
+uninstallable on nearly every device.
 
 ## First run and the iOS 26 language model
 
