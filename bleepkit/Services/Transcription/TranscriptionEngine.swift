@@ -50,6 +50,10 @@ nonisolated enum TranscriptionError: LocalizedError {
     case recognizerUnavailable
     /// Neither engine supports the requested locale.
     case localeUnsupported(String)
+    /// The legacy recognizer works only against Apple's servers for this
+    /// locale. BleepKit never sends audio off the device, so this is a
+    /// refusal, not a fallback.
+    case onDeviceUnavailable(String)
     /// The iOS 26 language model is not installed and could not be
     /// downloaded (for example, no network on first run).
     case modelUnavailable(underlying: any Error)
@@ -62,6 +66,8 @@ nonisolated enum TranscriptionError: LocalizedError {
             return "Speech recognition isn't available right now. Try again in a moment."
         case .localeUnsupported(let identifier):
             return "Speech recognition doesn't support the \(identifier) language on this device."
+        case .onDeviceUnavailable(let identifier):
+            return "BleepKit transcribes only on this device, and the \(identifier) speech model isn't installed. Turn on Dictation for that language in Settings → General → Keyboard, then try again."
         case .modelUnavailable(let underlying):
             return "The speech model isn't installed and couldn't be downloaded: \(underlying.localizedDescription)"
         }

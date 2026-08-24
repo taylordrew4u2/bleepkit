@@ -48,12 +48,17 @@ Free accounts are also limited to ~3 installed development apps at a time.
 
 The project is configured for:
 
-- iOS **18.0** deployment target, iPhone only, portrait only
+- iOS **18.6** deployment target on the `bleepkit` app target (the
+  `bleepkitUITests` target matches it, so both run on the same simulator)
+- iPhone and iPad (`TARGETED_DEVICE_FAMILY = 1,2`); portrait only on
+  iPhone, all orientations on iPad
 - **Swift 6** language mode with strict concurrency
-- Supported platforms: iPhone device and simulator only
+- Supported platforms: iPhone/iPad device and simulator only
 
-These live in the target's Build Settings; nothing needs changing for a
-normal build.
+These live in each target's Build Settings; nothing needs changing for a
+normal build. Check `IPHONEOS_DEPLOYMENT_TARGET` on the **app** target
+before submitting — a value above the current shipping iOS makes the app
+uninstallable on nearly every device.
 
 ## First run and the iOS 26 language model
 
@@ -61,9 +66,13 @@ On iOS 26+, the first transcription needs the on-device speech model, which
 iOS downloads on demand (the UI shows "Preparing language model…"). This is
 a one-time system download shared between apps; it requires network **once**.
 If the download is unavailable (for example, first run in Airplane Mode),
-BleepKit automatically falls back to the legacy `SFSpeechRecognizer` engine,
-using its on-device recognition when the locale supports it. After the model
-is installed, everything — transcription included — runs fully offline.
+BleepKit automatically falls back to the legacy `SFSpeechRecognizer` engine.
+That engine is pinned to on-device recognition: it always sets
+`requiresOnDeviceRecognition`, and a locale whose model is not installed
+fails with a message pointing at Settings rather than transcribing on
+Apple's servers — the "audio never leaves your iPhone" claim in the purpose
+string and throughout the UI has to stay literally true. After the model is
+installed, everything — transcription included — runs fully offline.
 
 ## Permissions the app requests (at point of use, never at launch)
 
