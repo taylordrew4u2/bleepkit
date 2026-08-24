@@ -11,6 +11,10 @@ import Speech
 /// Transcription engine backed by `SFSpeechRecognizer`, for iOS 18–25 and
 /// as a fallback when the iOS 26 language model cannot be downloaded.
 ///
+/// Recognition is pinned on-device: the request always sets
+/// `requiresOnDeviceRecognition`, and a locale with no installed model
+/// fails rather than being transcribed on Apple's servers.
+///
 /// This file contains the only completion-handler code in the project,
 /// bridged to async through a continuation that is guarded against
 /// double-resume — a misconfigured recognition task can fire its handler
@@ -30,15 +34,20 @@ nonisolated struct LegacySpeechEngine: TranscriptionEngine {
             throw TranscriptionError.recognizerUnavailable
         }
 
-        let request = SFSpeechURLRecognitionRequest(url: audioURL)
-        if recognizer.supportsOnDeviceRecognition {
-            request.requiresOnDeviceRecognition = true
+        // Without an installed on-device model `SFSpeechRecognizer` would
+        // transcribe against Apple's servers. BleepKit promises the audio
+        // never leaves the phone, so refuse instead of falling back.
+        guard recognizer.supportsOnDeviceRecognition else {
+            throw TranscriptionError.onDeviceUnavailable(recognizer.locale.identifier)
         }
+
+        let request = SFSpeechURLRecognitionRequest(url: audioURL)
+        request.requiresOnDeviceRecognition = true
         request.shouldReportPartialResults = false
         request.addsPunctuation = true
         request.taskHint = .dictation
 
-        Logger.transcription.info("Legacy engine starting (onDevice: \(recognizer.supportsOnDeviceRecognition))")
+        Logger.transcription.info("Legacy engine starting on-device for \(recognizer.locale.identifier, privacy: .public)")
         return try await Self.run(recognizer: recognizer, request: request)
     }
 

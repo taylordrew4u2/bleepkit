@@ -66,9 +66,13 @@ On iOS 26+, the first transcription needs the on-device speech model, which
 iOS downloads on demand (the UI shows "Preparing language model…"). This is
 a one-time system download shared between apps; it requires network **once**.
 If the download is unavailable (for example, first run in Airplane Mode),
-BleepKit automatically falls back to the legacy `SFSpeechRecognizer` engine,
-using its on-device recognition when the locale supports it. After the model
-is installed, everything — transcription included — runs fully offline.
+BleepKit automatically falls back to the legacy `SFSpeechRecognizer` engine.
+That engine is pinned to on-device recognition: it always sets
+`requiresOnDeviceRecognition`, and a locale whose model is not installed
+fails with a message pointing at Settings rather than transcribing on
+Apple's servers — the "audio never leaves your iPhone" claim in the purpose
+string and throughout the UI has to stay literally true. After the model is
+installed, everything — transcription included — runs fully offline.
 
 ## Permissions the app requests (at point of use, never at launch)
 
