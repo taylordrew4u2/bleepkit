@@ -198,6 +198,24 @@ final class EditorViewModel {
         persist(tokens)
     }
 
+    /// Corrects a recognizer mistake while preserving the word's timing and
+    /// any explicit censor override. Detection is re-run because the edited
+    /// text may now match, or stop matching, the profanity list.
+    func updateText(forTokenID tokenID: UUID, to text: String) {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        var tokens = project.tokens
+        guard let index = tokens.firstIndex(where: { $0.id == tokenID }),
+              tokens[index].text != trimmed else { return }
+        tokens[index].text = trimmed
+        tokens[index].displayText = trimmed
+        let annotated = profanityMatcher.annotate(
+            tokens: tokens,
+            enabledSeverities: enabledSeverities
+        )
+        persist(annotated)
+    }
+
     /// Re-runs detection over the current tokens (after a severity change),
     /// leaving user overrides untouched.
     private func reannotate() {

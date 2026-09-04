@@ -53,7 +53,7 @@ struct CensorStyleView: View {
             }
 
             Section {
-                Toggle("Show sticker over video", isOn: overlayEnabledBinding)
+                Toggle("Show sticker during bleeps", isOn: overlayEnabledBinding)
                 if viewModel.project.overlayEnabled {
                     Picker("Sticker", selection: overlayStickerBinding) {
                         ForEach(emojiChoices, id: \.self) { emoji in
@@ -66,7 +66,7 @@ struct CensorStyleView: View {
             } header: {
                 Text("Sticker")
             } footer: {
-                Text("The sticker appears over the video during censored moments.")
+                Text("The sticker appears only while censored words are playing.")
             }
 
             if viewModel.project.overlayEnabled && !viewModel.project.overlayFollowsCaption {
@@ -240,6 +240,7 @@ private struct WordChipGrid: View {
                     Text(token.text)
                         .font(.bleepControlLabel)
                         .lineLimit(1)
+                        .minimumScaleFactor(0.75)
                         .frame(maxWidth: .infinity, minHeight: TapTarget.minimum)
                         .foregroundStyle(token.isCensored ? Color.bleepOnAccent : .primary)
                         .background(

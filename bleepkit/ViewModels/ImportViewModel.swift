@@ -21,14 +21,24 @@ nonisolated struct PickedVideoFile: Transferable {
     let url: URL
 
     static var transferRepresentation: some TransferRepresentation {
-        FileRepresentation(importedContentType: .movie) { received in
-            let fileExtension = received.file.pathExtension.isEmpty ? "mov" : received.file.pathExtension
-            let destination = FileManager.default.temporaryDirectory
-                .appending(path: UUID().uuidString)
-                .appendingPathExtension(fileExtension)
-            try FileManager.default.copyItem(at: received.file, to: destination)
-            return PickedVideoFile(url: destination)
+        FileRepresentation(importedContentType: .quickTimeMovie) { received in
+            try copyMovie(from: received.file)
         }
+        FileRepresentation(importedContentType: .mpeg4Movie) { received in
+            try copyMovie(from: received.file)
+        }
+        FileRepresentation(importedContentType: .movie) { received in
+            try copyMovie(from: received.file)
+        }
+    }
+
+    private static func copyMovie(from sourceURL: URL) throws -> PickedVideoFile {
+        let fileExtension = sourceURL.pathExtension.isEmpty ? "mov" : sourceURL.pathExtension
+        let destination = FileManager.default.temporaryDirectory
+            .appending(path: UUID().uuidString)
+            .appendingPathExtension(fileExtension)
+        try FileManager.default.copyItem(at: sourceURL, to: destination)
+        return PickedVideoFile(url: destination)
     }
 }
 
@@ -148,14 +158,19 @@ final class ImportViewModel {
     }
 
     private func performImport(title: String, makeLocalCopy: () async throws -> URL) async {
+        var temporaryURL: URL?
         var installedFileName: String?
         var extractedAudioURL: URL?
         do {
-            let temporaryURL = try await makeLocalCopy()
+            temporaryURL = try await makeLocalCopy()
             try Task.checkCancellation()
 
             phase = .importing(step: "Reading video info…")
-            let fileName = try ProjectStore.installSource(from: temporaryURL)
+            guard let localCopyURL = temporaryURL else {
+                throw ImportError.unreadableSelection
+            }
+            let fileName = try ProjectStore.installSource(from: localCopyURL)
+            temporaryURL = nil
             installedFileName = fileName
             let sourceURL = try ProjectStore.sourceURL(forFileName: fileName)
             let metadata = try await SourceVideoMetadata.load(from: sourceURL)
@@ -177,13 +192,24 @@ final class ImportViewModel {
                 extractedAudioURL: extractedAudioURL
             ))
         } catch is CancellationError {
+            cleanUpTemporaryCopy(temporaryURL)
             cleanUpPartialImport(installedFileName: installedFileName, extractedAudioURL: extractedAudioURL)
             Logger.importer.notice("Import canceled")
             phase = .idle
         } catch {
+            cleanUpTemporaryCopy(temporaryURL)
             cleanUpPartialImport(installedFileName: installedFileName, extractedAudioURL: extractedAudioURL)
             Logger.importer.error("Import failed: \(error.localizedDescription)")
             phase = .failed(message: error.localizedDescription)
+        }
+    }
+
+    private func cleanUpTemporaryCopy(_ url: URL?) {
+        guard let url, FileManager.default.fileExists(atPath: url.path) else { return }
+        do {
+            try FileManager.default.removeItem(at: url)
+        } catch {
+            Logger.importer.warning("Could not remove temporary import copy: \(error.localizedDescription)")
         }
     }
 

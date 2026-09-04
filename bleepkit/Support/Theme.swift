@@ -99,7 +99,7 @@ enum Radius {
     /// Small inline controls and badges.
     static let control: CGFloat = 2
     /// Cards: project tiles and the continue-editing hero.
-    static let card: CGFloat = 16
+    static let card: CGFloat = 8
 }
 
 // MARK: - Typography

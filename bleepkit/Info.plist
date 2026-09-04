@@ -4,6 +4,12 @@
 <dict>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>BleepKit saves exported censored videos to your Photo Library.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>BleepKit lets you choose videos from your Photo Library to caption and censor.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>BleepKit transcribes your video on this device to generate captions and find words to censor.</string>
 	<key>UILaunchScreen</key>
 	<dict>
 		<key>UIColorName</key>

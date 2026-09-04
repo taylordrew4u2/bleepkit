@@ -144,6 +144,8 @@ struct WordListView: View {
 private struct TokenRow: View {
     let token: WordToken
     let viewModel: EditorViewModel
+    @State private var draftText = ""
+    @FocusState private var isEditingText: Bool
 
     /// The three override choices, bridged to `WordToken.userOverride`.
     private enum OverrideChoice: Hashable {
@@ -171,32 +173,41 @@ private struct TokenRow: View {
             Button {
                 viewModel.seekToToken(token)
             } label: {
-                HStack(spacing: Spacing.standard) {
-                    Image(systemName: token.isCensored ? "speaker.slash.fill" : "checkmark.circle")
-                        .foregroundStyle(token.isCensored ? Color.bleepAccent : Color.secondary)
-                        .accessibilityLabel(token.isCensored ? "Censored" : "Not censored")
-                    VStack(alignment: .leading, spacing: Spacing.hairline) {
-                        Text(token.text)
-                            .fontWeight(token.isCensored ? .semibold : .regular)
-                            .foregroundStyle(token.isCensored ? Color.bleepAccent : .primary)
-                        if token.userOverride != nil {
-                            Text(token.userOverride == true ? "Always censored" : "Never censored")
-                                .font(.bleepFineprint)
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                    Spacer()
-                    VStack(alignment: .trailing, spacing: Spacing.hairline) {
-                        Text(token.startSeconds.timecodeString)
-                            .font(.bleepTimecode)
-                        Text("\(Int((token.durationSeconds * 1000).rounded())) ms")
-                            .font(.bleepFineprintTimecode)
-                            .foregroundStyle(.secondary)
-                    }
-                }
+                Image(systemName: token.isCensored ? "speaker.slash.fill" : "checkmark.circle")
+                    .foregroundStyle(token.isCensored ? Color.bleepAccent : Color.secondary)
+                    .frame(minWidth: TapTarget.minimum, minHeight: TapTarget.minimum)
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
+            .accessibilityLabel(token.isCensored ? "Play censored word" : "Play word")
             .accessibilityHint("Seeks the preview to this word")
+
+            VStack(alignment: .leading, spacing: Spacing.hairline) {
+                TextField("Word", text: $draftText)
+                    .fontWeight(token.isCensored ? .semibold : .regular)
+                    .foregroundStyle(token.isCensored ? Color.bleepAccent : .primary)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .submitLabel(.done)
+                    .focused($isEditingText)
+                    .onSubmit(commitTextEdit)
+                    .accessibilityLabel("Transcript word")
+                if token.userOverride != nil {
+                    Text(token.userOverride == true ? "Always censored" : "Never censored")
+                        .font(.bleepFineprint)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            Spacer()
+
+            VStack(alignment: .trailing, spacing: Spacing.hairline) {
+                Text(token.startSeconds.timecodeString)
+                    .font(.bleepTimecode)
+                Text("\(Int((token.durationSeconds * 1000).rounded())) ms")
+                    .font(.bleepFineprintTimecode)
+                    .foregroundStyle(.secondary)
+            }
 
             Menu {
                 Picker("Censoring", selection: choiceBinding) {
@@ -212,6 +223,19 @@ private struct TokenRow: View {
             }
             .accessibilityLabel("Censor override for \(token.text)")
         }
+        .onAppear {
+            draftText = token.text
+        }
+        .onChange(of: token.text) { _, newText in
+            if !isEditingText {
+                draftText = newText
+            }
+        }
+        .onChange(of: isEditingText) { _, isFocused in
+            if !isFocused {
+                commitTextEdit()
+            }
+        }
     }
 
     private var choiceBinding: Binding<OverrideChoice> {
@@ -219,5 +243,15 @@ private struct TokenRow: View {
             get: { OverrideChoice(token.userOverride) },
             set: { viewModel.setOverride(forTokenID: token.id, to: $0.overrideValue) }
         )
+    }
+
+    private func commitTextEdit() {
+        let trimmed = draftText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            draftText = token.text
+            return
+        }
+        draftText = trimmed
+        viewModel.updateText(forTokenID: token.id, to: trimmed)
     }
 }

@@ -102,10 +102,11 @@ struct ExportView: View {
                         .foregroundStyle(.secondary)
                 }
                 Button("Cancel", role: .cancel) {
-                    viewModel.cancel()
+                    showsCancelConfirmation = true
                 }
                 .buttonStyle(.bordered)
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         case .saving:
             LoadingStateView(message: "Saving to Photos…")
         case .completed(let url):

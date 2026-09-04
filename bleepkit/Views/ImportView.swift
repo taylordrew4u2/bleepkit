@@ -84,7 +84,7 @@ private struct ImportIdleView: View {
             .frame(maxWidth: ContentWidth.dashboard)
             .frame(maxWidth: .infinity)
         }
-        .navigationTitle(titleText)
+        .navigationTitle("BleepKit")
         .navigationBarTitleDisplayMode(.inline)
         .mastheadTagline(subtitleText)
         .toolbar {
@@ -130,7 +130,9 @@ private struct ImportIdleView: View {
                     suggestedTitle: url.deletingPathExtension().lastPathComponent
                 )
             case .failure:
-                viewModel.fail(with: result.failureMessage ?? "The file couldn't be opened.")
+                if !result.isUserCancellation {
+                    viewModel.fail(with: result.failureMessage ?? "The file couldn't be opened.")
+                }
             }
         }
     }
@@ -147,7 +149,7 @@ private struct ImportIdleView: View {
 
     /// "2.1 GB free · 3 need review" — the desk's vital signs.
     private var subtitleText: String {
-        var parts: [String] = []
+        var parts = [titleText]
         if let free = Self.freeSpaceText() {
             parts.append(free)
         }
@@ -174,13 +176,13 @@ private struct ImportIdleView: View {
     /// with the Files importer as a quieter chip beneath it.
     private var newProjectControls: some View {
         VStack(spacing: Spacing.standard) {
-            PhotosPicker(selection: $photosSelection, matching: .videos) {
-                Label("New project", systemImage: "plus")
+            PhotosPicker(selection: $photosSelection, matching: .videos, preferredItemEncoding: .current) {
+                Label("Choose from Photos", systemImage: "photo.on.rectangle")
                     .font(.bleepEmphasis)
                     .frame(maxWidth: .infinity, minHeight: TapTarget.minimum)
             }
             .buttonStyle(.borderedProminent)
-            .buttonBorderShape(.capsule)
+            .buttonBorderShape(.roundedRectangle(radius: Radius.card))
             .foregroundStyle(Color.bleepOnAccent)
             .accessibilityLabel("Choose from Photos")
 
@@ -210,7 +212,7 @@ private struct ImportIdleView: View {
                     .foregroundStyle(.secondary)
                     .textCase(.uppercase)
             }
-            ZStack(alignment: .topLeading) {
+            ZStack(alignment: .topTrailing) {
                 NavigationLink {
                     EditorView(project: project)
                 } label: {
@@ -222,6 +224,7 @@ private struct ImportIdleView: View {
                 }
                 // Deletion must be discoverable, not just a long-press.
                 projectActionsMenu(for: project)
+                    .padding(Spacing.compact)
             }
         }
     }
@@ -256,6 +259,7 @@ private struct ImportIdleView: View {
                             deleteMenuButton(for: project)
                         }
                         projectActionsMenu(for: project)
+                            .padding(Spacing.tight)
                     }
                 }
             }
@@ -264,33 +268,44 @@ private struct ImportIdleView: View {
 
     /// Hero-sized invitation shown before the first import.
     private var firstImportCard: some View {
-        Button {
-            showsFileImporter = true
-        } label: {
-            VStack(spacing: Spacing.compact) {
-                Image(systemName: "arrow.down.circle")
-                    .font(.bleepTransportGlyph)
-                    .foregroundStyle(Color.bleepAccent)
-                Text("Drop in your first Reel")
-                    .font(.bleepEmphasis)
-                (Text("It gets transcribed and the ")
-                    + Text("████").foregroundStyle(Color.bleepAccent)
-                    + Text(" found for you — or browse files."))
-                    .font(.bleepMetadata)
-                    .foregroundStyle(.secondary)
-                    .accessibilityLabel("It gets transcribed and the profanity found for you — or browse files.")
+        VStack(spacing: Spacing.standard) {
+            PhotosPicker(selection: $photosSelection, matching: .videos, preferredItemEncoding: .current) {
+                VStack(spacing: Spacing.compact) {
+                    Image(systemName: "photo.badge.plus")
+                        .font(.bleepTransportGlyph)
+                        .foregroundStyle(Color.bleepAccent)
+                    Text("Choose your first video")
+                        .font(.bleepEmphasis)
+                    (Text("It gets transcribed and the ")
+                        + Text("████").foregroundStyle(Color.bleepAccent)
+                        + Text(" found for you."))
+                        .font(.bleepMetadata)
+                        .foregroundStyle(.secondary)
+                        .accessibilityLabel("It gets transcribed and the profanity found for you.")
+                }
+                .multilineTextAlignment(.center)
+                .padding(Spacing.medium)
+                .frame(maxWidth: .infinity)
+                .frame(height: ThumbnailSize.heroHeight)
+                .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: Radius.card))
+                .overlay(
+                    RoundedRectangle(cornerRadius: Radius.card)
+                        .strokeBorder(.separator)
+                )
             }
-            .multilineTextAlignment(.center)
-            .padding(Spacing.medium)
-            .frame(maxWidth: .infinity)
-            .frame(height: ThumbnailSize.heroHeight)
-            .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: Radius.card))
-            .overlay(
-                RoundedRectangle(cornerRadius: Radius.card)
-                    .strokeBorder(.separator)
-            )
+            .buttonStyle(.plain)
+            .accessibilityLabel("Choose your first video from Photos")
+
+            Button {
+                showsFileImporter = true
+            } label: {
+                Label("Browse Files Instead", systemImage: "folder")
+                    .font(.bleepControlLabel)
+                    .frame(maxWidth: .infinity, minHeight: TapTarget.minimum)
+            }
+            .buttonStyle(.bordered)
+            .buttonBorderShape(.roundedRectangle(radius: Radius.card))
         }
-        .buttonStyle(.plain)
     }
 
     private var privacyFootnote: some View {
@@ -316,6 +331,7 @@ private struct ImportIdleView: View {
                 .symbolRenderingMode(.hierarchical)
                 .font(.bleepEmphasis)
                 .foregroundStyle(Color.bleepOnVideo)
+                .background(Color.bleepScrim, in: Circle())
                 .frame(minWidth: TapTarget.minimum, minHeight: TapTarget.minimum)
                 .contentShape(Rectangle())
         }
@@ -369,6 +385,7 @@ private struct ContinueEditingCard: View {
                         .font(.bleepEmphasis)
                         .foregroundStyle(Color.bleepOnVideo)
                         .lineLimit(1)
+                        .minimumScaleFactor(0.8)
                     statsLine
                 }
                 Spacer()
@@ -446,6 +463,7 @@ private struct ProjectGridCard: View {
             Text(project.title)
                 .font(.bleepMetadata)
                 .lineLimit(1)
+                .minimumScaleFactor(0.8)
         }
     }
 
@@ -493,7 +511,7 @@ private struct SourceThumbnailView: View {
             if let thumbnail {
                 Image(decorative: thumbnail, scale: 1)
                     .resizable()
-                    .scaledToFill()
+                    .scaledToFit()
             } else {
                 Image(systemName: "film")
                     .font(.bleepControlLabel)

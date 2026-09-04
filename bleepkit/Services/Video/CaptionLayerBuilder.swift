@@ -498,6 +498,11 @@ struct CaptionLayerBuilder {
             .map { (min(max($0.start / totalDuration, 0), 1), min(max($0.end / totalDuration, 0), 1)) }
             .filter { $0.1 > $0.0 }
             .sorted { $0.0 < $1.0 }
+        guard !normalized.isEmpty else {
+            animation.values = [baseValue]
+            animation.keyTimes = [0, 1]
+            return animation
+        }
 
         var values: [Any] = []
         var keyTimes: [NSNumber] = [0]
