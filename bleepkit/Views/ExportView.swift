@@ -15,6 +15,7 @@ struct ExportView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var viewModel: ExportViewModel?
     @State private var showsCancelConfirmation = false
+    @State private var selectedResolution: ExportResolution = .fullHD
 
     var body: some View {
         NavigationStack {
@@ -22,7 +23,7 @@ struct ExportView: View {
                 if let viewModel {
                     content(for: viewModel)
                 } else {
-                    ProgressView()
+                    exportOptions
                 }
             }
             .navigationTitle("Export")
@@ -55,17 +56,6 @@ struct ExportView: View {
             Button("Continue Exporting", role: .cancel) {}
         } message: {
             Text("The render so far is discarded.")
-        }
-        .task {
-            if viewModel == nil {
-                let model = ExportViewModel(
-                    editor: editor,
-                    environment: environment,
-                    limitSeconds: limitSeconds
-                )
-                viewModel = model
-                model.startExport()
-            }
         }
     }
 
@@ -132,6 +122,55 @@ struct ExportView: View {
                 viewModel.startExport()
             }
         }
+    }
+
+    private var exportOptions: some View {
+        Form {
+            Section {
+                Picker("Resolution", selection: $selectedResolution) {
+                    ForEach(ExportResolution.allCases) { resolution in
+                        Text(resolution.title).tag(resolution)
+                    }
+                }
+                .pickerStyle(.segmented)
+
+                Text(selectedResolution.detail)
+                    .font(.bleepMetadata)
+                    .foregroundStyle(.secondary)
+            } header: {
+                Text("Output")
+            }
+
+            if let limitSeconds {
+                Section {
+                    Text("Free export renders the first \(Int(limitSeconds)) seconds.")
+                        .font(.bleepDetail)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            Section {
+                Button {
+                    startExport()
+                } label: {
+                    Label("Export \(selectedResolution.title)", systemImage: "square.and.arrow.up")
+                        .frame(maxWidth: .infinity, minHeight: TapTarget.minimum)
+                }
+                .buttonStyle(.borderedProminent)
+                .buttonBorderShape(.roundedRectangle(radius: Radius.card))
+            }
+        }
+    }
+
+    private func startExport() {
+        let model = ExportViewModel(
+            editor: editor,
+            environment: environment,
+            limitSeconds: limitSeconds,
+            resolution: selectedResolution
+        )
+        viewModel = model
+        model.startExport()
     }
 
     /// Same visual language as the sheet's other states, with the primary

@@ -32,12 +32,21 @@ final class ExportViewModel {
     private let photoLibraryWriter: PhotoLibraryWriter
     private let tempFiles: TempFileManager
     private var exportTask: Task<Void, Never>?
+    private var backgroundTaskID: UIBackgroundTaskIdentifier = .invalid
     /// Free-tier cap in seconds; nil exports the full length.
     let limitSeconds: Double?
+    /// Output quality selected before export starts.
+    let resolution: ExportResolution
 
-    init(editor: EditorViewModel, environment: AppEnvironment, limitSeconds: Double? = nil) {
+    init(
+        editor: EditorViewModel,
+        environment: AppEnvironment,
+        limitSeconds: Double? = nil,
+        resolution: ExportResolution
+    ) {
         self.editor = editor
         self.limitSeconds = limitSeconds
+        self.resolution = resolution
         pipeline = ExportPipeline(
             audioCensorBuilder: environment.audioCensorBuilder,
             tempFiles: environment.tempFiles
@@ -51,6 +60,7 @@ final class ExportViewModel {
     func startExport() {
         exportTask?.cancel()
         phase = .exporting(fraction: 0)
+        beginBackgroundExportTask()
         exportTask = Task {
             await self.run()
         }
@@ -59,6 +69,7 @@ final class ExportViewModel {
     /// Cancels the in-flight export; the pipeline deletes partial output.
     func cancel() {
         exportTask?.cancel()
+        endBackgroundExportTask()
     }
 
     /// Removes the finished file when the user is done with it.
@@ -72,6 +83,7 @@ final class ExportViewModel {
     }
 
     private func run() async {
+        defer { endBackgroundExportTask() }
         let project = editor.project
         do {
             let sourceURL = try ProjectStore.sourceURL(forFileName: project.sourceFileName)
@@ -80,6 +92,7 @@ final class ExportViewModel {
                 sourceURL: sourceURL,
                 ranges: editor.censorRanges,
                 beepSettings: project.beepSettings,
+                resolution: resolution,
                 maxDurationSeconds: limitSeconds,
                 buildOverlayLayers: { [editor] _, renderSize in
                     // Identical builders to the preview, at the output's
@@ -116,5 +129,21 @@ final class ExportViewModel {
             // wrong".
             phase = .failed(message: error.localizedDescription)
         }
+    }
+
+    private func beginBackgroundExportTask() {
+        endBackgroundExportTask()
+        backgroundTaskID = UIApplication.shared.beginBackgroundTask(withName: "BleepKit Export") { [weak self] in
+            Task { @MainActor in
+                self?.exportTask?.cancel()
+                self?.endBackgroundExportTask()
+            }
+        }
+    }
+
+    private func endBackgroundExportTask() {
+        guard backgroundTaskID != .invalid else { return }
+        UIApplication.shared.endBackgroundTask(backgroundTaskID)
+        backgroundTaskID = .invalid
     }
 }
