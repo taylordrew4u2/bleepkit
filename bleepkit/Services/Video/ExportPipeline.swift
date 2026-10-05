@@ -9,7 +9,7 @@ import Foundation
 import OSLog
 import QuartzCore
 
-/// Renders the final 1080×1920 MP4: the censored composition (same builder
+/// Renders the final 1080p or 4K MP4: the censored composition (same builder
 /// as the preview) with the caption and overlay trees burned in through
 /// `AVVideoCompositionCoreAnimationTool`.
 ///
@@ -41,6 +41,7 @@ struct ExportPipeline {
     /// - Parameters:
     ///   - maxDurationSeconds: When set, only the first this-many seconds
     ///     are rendered — the free tier's export cap.
+    ///   - resolution: The output standard, preserving source aspect ratio.
     ///   - buildOverlayLayers: Builds the burn-in trees (overlay below,
     ///     captions on top) for the given asset duration and output size —
     ///     the source's native size, untouched. Must come from the same
@@ -52,6 +53,7 @@ struct ExportPipeline {
         sourceURL: URL,
         ranges: [CensorRange],
         beepSettings: BeepSettings,
+        resolution: ExportResolution,
         maxDurationSeconds: Double? = nil,
         buildOverlayLayers: @MainActor (Double, CGSize) -> [CALayer],
         progress: @escaping @MainActor (Double) -> Void
@@ -60,7 +62,8 @@ struct ExportPipeline {
             sourceURL: sourceURL,
             ranges: ranges,
             beepSettings: beepSettings,
-            audioCensorBuilder: audioCensorBuilder
+            audioCensorBuilder: audioCensorBuilder,
+            exportResolution: resolution
         )
         try Task.checkCancellation()
 
@@ -87,7 +90,7 @@ struct ExportPipeline {
         )
 
         // An export session is single-use; every attempt gets a fresh one.
-        guard let session = Self.makeSession(for: built.composition) else {
+        guard let session = Self.makeSession(for: built.composition, resolution: resolution) else {
             throw ExportError.sessionUnavailable
         }
         session.videoComposition = built.videoComposition
@@ -125,32 +128,38 @@ struct ExportPipeline {
             Logger.export.error("Export failed: \(error.localizedDescription)")
             throw ExportError.failed(underlying: error)
         }
-        Logger.export.info("Exported \(outputURL.lastPathComponent) at \(built.frameRate) fps")
+        Logger.export.info("Exported \(outputURL.lastPathComponent) at \(built.frameRate) fps, \(Int(built.renderSize.width))×\(Int(built.renderSize.height))")
         return outputURL
     }
 
-    /// Export presets in descending quality order. The output raster is
-    /// fixed at 1080×1920 by the video composition regardless of preset;
-    /// the preset governs codec and bitrate. The highest-quality presets
-    /// preserve far more of the source's detail through the unavoidable
-    /// re-encode — HEVC first (best quality per bit; Instagram accepts it),
-    /// then H.264 highest quality, then the standard 1080p preset as the
-    /// floor for devices that support neither.
-    private static let presetPreferenceOrder = [
-        AVAssetExportPresetHEVCHighestQuality,
-        AVAssetExportPresetHighestQuality,
-        AVAssetExportPreset1920x1080,
-    ]
-
     /// Creates the export session with the best supported preset.
-    private static func makeSession(for asset: AVAsset) -> AVAssetExportSession? {
-        for preset in presetPreferenceOrder {
+    private static func makeSession(for asset: AVAsset, resolution: ExportResolution) -> AVAssetExportSession? {
+        for preset in presetPreferenceOrder(for: resolution) {
             if let session = AVAssetExportSession(asset: asset, presetName: preset) {
                 Logger.export.info("Export preset: \(preset, privacy: .public)")
                 return session
             }
         }
         return nil
+    }
+
+    private static func presetPreferenceOrder(for resolution: ExportResolution) -> [String] {
+        switch resolution {
+        case .fullHD:
+            [
+                AVAssetExportPresetHEVCHighestQuality,
+                AVAssetExportPresetHighestQuality,
+                AVAssetExportPresetHEVC1920x1080,
+                AVAssetExportPreset1920x1080,
+            ]
+        case .ultraHD:
+            [
+                AVAssetExportPresetHEVCHighestQuality,
+                AVAssetExportPresetHighestQuality,
+                AVAssetExportPresetHEVC3840x2160,
+                AVAssetExportPreset3840x2160,
+            ]
+        }
     }
 
     #if DEBUG

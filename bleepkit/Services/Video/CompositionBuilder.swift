@@ -24,8 +24,49 @@ nonisolated enum VideoSourceError: LocalizedError {
     }
 }
 
+/// Export raster choices. The source aspect ratio is preserved; the long
+/// edge is scaled to the selected standard size.
+nonisolated enum ExportResolution: String, CaseIterable, Identifiable, Sendable {
+    case fullHD
+    case ultraHD
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .fullHD: "1080p"
+        case .ultraHD: "4K"
+        }
+    }
+
+    var detail: String {
+        switch self {
+        case .fullHD: "Up to 1920 pixels on the long edge"
+        case .ultraHD: "Up to 3840 pixels on the long edge"
+        }
+    }
+
+    var longEdgePixels: CGFloat {
+        switch self {
+        case .fullHD: 1920
+        case .ultraHD: 3840
+        }
+    }
+
+    func outputSize(for displaySize: CGSize) -> CGSize {
+        guard displaySize.width > 0, displaySize.height > 0 else {
+            return CGSize(width: 1080, height: 1920)
+        }
+        let scale = longEdgePixels / max(displaySize.width, displaySize.height)
+        return CGSize(
+            width: CompositionBuilder.evenDimension(displaySize.width * scale),
+            height: CompositionBuilder.evenDimension(displaySize.height * scale)
+        )
+    }
+}
+
 /// A censored composition ready for playback or export: the source video
-/// upright at its native size plus muted-and-beeped audio.
+/// upright plus muted-and-beeped audio.
 nonisolated struct CensoredComposition {
     let composition: AVMutableComposition
     let videoComposition: AVMutableVideoComposition
@@ -34,7 +75,7 @@ nonisolated struct CensoredComposition {
     let durationSeconds: Double
     /// Output frame rate, clamped to 24/25/30/60.
     let frameRate: Int32
-    /// The output raster — the source's oriented display size, untouched.
+    /// The output raster.
     let renderSize: CGSize
 }
 
@@ -58,22 +99,26 @@ nonisolated enum CompositionBuilder {
         return CGSize(width: abs(transformed.width), height: abs(transformed.height))
     }
 
-    /// The transform that renders the raw track upright at its native size —
-    /// the recorded orientation applied, nothing scaled, nothing cropped.
-    /// The source frame stays untouched; only captions, overlays, and audio
-    /// are added on top.
+    /// The transform that renders the raw track upright at the requested
+    /// output size — recorded orientation applied, uniformly scaled, never
+    /// cropped.
     ///
     /// Works for all four `preferredTransform` orientations (0°, 90°, 180°,
     /// 270°): the transformed rect is translated so its origin sits at zero.
     static func orientationTransform(
         naturalSize: CGSize,
-        preferredTransform: CGAffineTransform
+        preferredTransform: CGAffineTransform,
+        outputSize: CGSize? = nil
     ) -> CGAffineTransform {
         let transformed = CGRect(origin: .zero, size: naturalSize).applying(preferredTransform)
         guard transformed.width > 0, transformed.height > 0 else { return .identity }
-        return preferredTransform.concatenating(
+        let upright = preferredTransform.concatenating(
             CGAffineTransform(translationX: -transformed.minX, y: -transformed.minY)
         )
+        guard let outputSize else { return upright }
+        let orientedSize = CGSize(width: abs(transformed.width), height: abs(transformed.height))
+        let scale = min(outputSize.width / orientedSize.width, outputSize.height / orientedSize.height)
+        return upright.concatenating(CGAffineTransform(scaleX: scale, y: scale))
     }
 
     /// Rounds a render dimension to the even integer video encoders require.
@@ -107,7 +152,8 @@ extension CompositionBuilder {
         sourceURL: URL,
         ranges: [CensorRange],
         beepSettings: BeepSettings,
-        audioCensorBuilder: AudioCensorBuilder
+        audioCensorBuilder: AudioCensorBuilder,
+        exportResolution: ExportResolution? = nil
     ) async throws -> CensoredComposition {
         let asset = AVURLAsset(url: sourceURL)
         let videoTracks = try await asset.loadTracks(withMediaType: .video)
@@ -135,9 +181,19 @@ extension CompositionBuilder {
             from: asset, to: composition, ranges: ranges, settings: beepSettings
         )
 
+        let oriented = displaySize(naturalSize: naturalSize, preferredTransform: preferredTransform)
+        let outputSize = CGSize(
+            width: evenDimension(exportResolution?.outputSize(for: oriented).width ?? oriented.width),
+            height: evenDimension(exportResolution?.outputSize(for: oriented).height ?? oriented.height)
+        )
+
         let layerInstruction = AVMutableVideoCompositionLayerInstruction(assetTrack: videoTrack)
         layerInstruction.setTransform(
-            orientationTransform(naturalSize: naturalSize, preferredTransform: preferredTransform),
+            orientationTransform(
+                naturalSize: naturalSize,
+                preferredTransform: preferredTransform,
+                outputSize: outputSize
+            ),
             at: .zero
         )
         let instruction = AVMutableVideoCompositionInstruction()
@@ -145,13 +201,6 @@ extension CompositionBuilder {
         instruction.layerInstructions = [layerInstruction]
 
         let videoComposition = AVMutableVideoComposition()
-        // Output at the source's oriented size (rounded to the even pixels
-        // encoders require) — no scaling, no cropping.
-        let oriented = displaySize(naturalSize: naturalSize, preferredTransform: preferredTransform)
-        let outputSize = CGSize(
-            width: evenDimension(oriented.width),
-            height: evenDimension(oriented.height)
-        )
         videoComposition.renderSize = outputSize
         let frameRate = clampedFrameRate(nominalFrameRate)
         videoComposition.frameDuration = CMTime(value: 1, timescale: frameRate)

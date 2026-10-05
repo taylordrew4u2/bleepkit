@@ -70,7 +70,7 @@ struct CaptionStyleView: View {
                 )
             }
 
-            Section("Background pill") {
+            Section("Caption background") {
                 Toggle("Show background", isOn: binding(\.backgroundEnabled))
                 if viewModel.project.captionStyle.backgroundEnabled {
                     ColorPickerRow(title: "Color", hex: binding(\.backgroundColorHex))

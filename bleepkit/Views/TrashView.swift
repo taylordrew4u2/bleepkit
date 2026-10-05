@@ -148,6 +148,7 @@ private struct TrashRowView: View {
         VStack(alignment: .leading, spacing: Spacing.hairline) {
             Text(project.title)
                 .lineLimit(1)
+                .minimumScaleFactor(0.8)
             if let trashedAt = project.trashedAt {
                 Text("\(project.durationSeconds.timecodeString) · Deleted \(trashedAt.formatted(.relative(presentation: .named)))")
                     .font(.bleepMetadata)

@@ -45,7 +45,8 @@ struct PaywallView: View {
                         .frame(maxWidth: .infinity, minHeight: TapTarget.minimum)
                 }
                 .buttonStyle(.bordered)
-                .buttonBorderShape(.capsule)
+                .buttonBorderShape(.roundedRectangle(radius: Radius.card))
+                .disabled(isWorking)
                 HStack(spacing: Spacing.roomy) {
                     Button("Restore Purchases") {
                         Task { await restore() }
@@ -89,6 +90,7 @@ struct PaywallView: View {
         .offerCodeRedemption(isPresented: $showsCodeRedemption) { result in
             Task { await handleRedemption(result) }
         }
+        .interactiveDismissDisabled(isWorking)
         .task { await loadProduct() }
     }
 
@@ -166,7 +168,7 @@ struct PaywallView: View {
             .frame(maxWidth: .infinity, minHeight: TapTarget.minimum)
         }
         .buttonStyle(.borderedProminent)
-        .buttonBorderShape(.capsule)
+        .buttonBorderShape(.roundedRectangle(radius: Radius.card))
         .foregroundStyle(Color.bleepOnAccent)
         .disabled(isWorking)
     }
