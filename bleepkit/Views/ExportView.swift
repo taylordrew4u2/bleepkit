@@ -37,6 +37,8 @@ struct ExportView: View {
                             dismiss()
                         }
                     }
+                    // The Photos write can't be undone once it starts.
+                    .disabled(isSaving)
                 }
             }
         }
@@ -55,6 +57,10 @@ struct ExportView: View {
         } message: {
             Text("The render so far is discarded.")
         }
+    }
+
+    private var isSaving: Bool {
+        if case .saving = viewModel?.phase { true } else { false }
     }
 
     private var isWorking: Bool {

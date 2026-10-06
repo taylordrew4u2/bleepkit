@@ -102,11 +102,13 @@ final class ProjectStore {
         let trashed = try context.fetch(
             FetchDescriptor<Project>(predicate: #Predicate { $0.trashedAt != nil })
         )
+        // Save before touching disk, as in `delete(_:)`: a failed save must
+        // leave restorable projects with their videos intact.
+        let fileNames = trashed.map(\.sourceFileName)
         for project in trashed {
-            let fileName = project.sourceFileName
             context.delete(project)
-            Self.removeSource(fileName: fileName)
         }
         try context.save()
+        fileNames.forEach { Self.removeSource(fileName: $0) }
     }
 }

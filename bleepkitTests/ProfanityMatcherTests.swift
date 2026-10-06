@@ -23,6 +23,10 @@ struct ProfanityMatcherTests {
     @Test("Clean words are not flagged", arguments: [
         "assassin", "class", "analysis", "cockpit", "shiitake", "passage",
         "hello", "shell", "passes", "assess", "document", "titan", "bass",
+        // Suffix stripping must not reach a slur or strong stem.
+        "spices", "spiced", "cocked", "pricking",
+        // Plain numbers are not leetspeak.
+        "455", "4.55",
     ])
     func cleanWordsPass(word: String) {
         #expect(matcher.match(word: word, enabledSeverities: allTiers) == nil)

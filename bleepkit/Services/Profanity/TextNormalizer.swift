@@ -51,7 +51,9 @@ nonisolated enum TextNormalizer {
         let collapsed = collapseRuns(trimmed)
 
         // 5. Leetspeak substitution.
-        let deleeted = String(collapsed.map { leetMap[$0] ?? $0 })
+        //    Plain numbers stay numbers: "455" must not become "ass".
+        let isNumeric = !collapsed.contains(where: \.isLetter) && collapsed.contains(where: \.isNumber)
+        let deleeted = isNumeric ? collapsed : String(collapsed.map { leetMap[$0] ?? $0 })
 
         // 6. Keep letters, digits, and the meaningful asterisk.
         return deleeted.filter { $0.isLetter || $0.isNumber || $0 == "*" }

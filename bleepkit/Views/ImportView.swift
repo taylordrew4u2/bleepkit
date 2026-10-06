@@ -86,6 +86,9 @@ private struct ImportIdleView: View {
         }
         .navigationTitle("BleepKit")
         .navigationBarTitleDisplayMode(.inline)
+        .navigationDestination(for: Project.self) { project in
+            EditorView(project: project)
+        }
         .mastheadTagline(subtitleText)
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
@@ -202,12 +205,13 @@ private struct ImportIdleView: View {
                     .textCase(.uppercase)
             }
             ZStack(alignment: .topTrailing) {
-                NavigationLink {
-                    EditorView(project: project)
-                } label: {
+                // Value-based so the pushed editor survives this card moving
+                // (editing bumps `updatedAt`, which re-sorts the dashboard).
+                NavigationLink(value: project) {
                     ContinueEditingCard(project: project)
                 }
                 .buttonStyle(.plain)
+                .accessibilityIdentifier("projectCard")
                 .contextMenu {
                     deleteMenuButton(for: project)
                 }
@@ -238,12 +242,13 @@ private struct ImportIdleView: View {
                 // The hero above is the newest project; the grid holds the rest.
                 ForEach(Array(projects.dropFirst())) { project in
                     ZStack(alignment: .topTrailing) {
-                        NavigationLink {
-                            EditorView(project: project)
-                        } label: {
+                        // Value-based so the pushed editor survives this card moving
+                        // (editing bumps `updatedAt`, which re-sorts the dashboard).
+                        NavigationLink(value: project) {
                             ProjectGridCard(project: project)
                         }
                         .buttonStyle(.plain)
+                        .accessibilityIdentifier("projectCard")
                         .contextMenu {
                             deleteMenuButton(for: project)
                         }

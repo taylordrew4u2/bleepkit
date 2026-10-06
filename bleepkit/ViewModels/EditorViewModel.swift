@@ -10,6 +10,7 @@ import CoreMedia
 import Foundation
 import Observation
 import OSLog
+import Photos
 import QuartzCore
 
 /// Drives editing of one project: transcription (re-extracting audio when
@@ -124,6 +125,17 @@ final class EditorViewModel {
 
     deinit {
         playerObservation.invalidate()
+    }
+
+    /// Stops all in-flight work when the editor is closed. The running tasks
+    /// retain `self`, so without this a closed editor keeps transcribing in
+    /// the background, and reopening the project starts a second run that
+    /// races the first for `project.tokens`.
+    func tearDown() {
+        transcriptionTask?.cancel()
+        previewTask?.cancel()
+        beepRefreshDebounce?.cancel()
+        pausePlayback()
     }
 
     // MARK: Transcription
@@ -291,6 +303,7 @@ final class EditorViewModel {
                     toleranceAfter: .zero
                 )
             }
+            try Task.checkCancellation()
             previewRevision += 1
             previewReady = true
         } catch is CancellationError {
@@ -513,9 +526,21 @@ final class EditorViewModel {
             }
         }
         do {
+            // Ask for Photos access up front, alongside Speech Recognition, so
+            // both prompts appear right after a video is chosen rather than
+            // interrupting export. Denial doesn't block transcription; saving
+            // re-checks and reports it then.
+            if PHPhotoLibrary.authorizationStatus(for: .readWrite) == .notDetermined {
+                _ = await PhotoLibraryWriter.requestAuthorization()
+            }
+            try Task.checkCancellation()
             let sourceURL = try ProjectStore.sourceURL(forFileName: project.sourceFileName)
             guard let audioURL = try await audioExtractor.extractAudio(from: sourceURL) else {
-                transcriptionState = .failed(message: "This video has no audio track, so there's nothing to transcribe.")
+                // Nothing to transcribe or censor, but the video can still be
+                // previewed and exported unchanged.
+                engineIdentifier = nil
+                transcriptionState = .ready([])
+                refreshPreview()
                 return
             }
             scratchAudioURL = audioURL
@@ -553,17 +578,22 @@ final class EditorViewModel {
             refreshPreview()
         } catch is CancellationError {
             Logger.transcription.notice("Transcription cancelled")
-            transcriptionState = .idle
+            transcriptionState = project.tokens.isEmpty ? .idle : .ready(project.tokens)
         } catch let error as TranscriptionError {
-            if case .notAuthorized = error {
+            Logger.transcription.error("Transcription failed: \(error.localizedDescription)")
+            if !project.tokens.isEmpty {
+                // A failed re-run must not hide the transcript still on disk.
+                transcriptionState = .ready(project.tokens)
+            } else if case .notAuthorized = error {
                 transcriptionState = .permissionDenied
             } else {
-                Logger.transcription.error("Transcription failed: \(error.localizedDescription)")
                 transcriptionState = .failed(message: error.localizedDescription)
             }
         } catch {
             Logger.transcription.error("Transcription failed: \(error.localizedDescription)")
-            transcriptionState = .failed(message: error.localizedDescription)
+            transcriptionState = project.tokens.isEmpty
+                ? .failed(message: error.localizedDescription)
+                : .ready(project.tokens)
         }
     }
 

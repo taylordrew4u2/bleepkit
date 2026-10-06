@@ -26,9 +26,14 @@ nonisolated struct LegacySpeechEngine: TranscriptionEngine {
     let identifier = "SFSpeechRecognizer"
 
     func transcribe(audioURL: URL, locale: Locale) async throws -> [WordToken] {
+        // Fall back to en-US only for English locales (an unlisted region);
+        // transcribing another language as English yields garbage.
+        let isEnglish = locale.language.languageCode?.identifier == "en"
         guard let recognizer = SFSpeechRecognizer(locale: locale)
-                ?? SFSpeechRecognizer(locale: Locale(identifier: "en-US")) else {
-            throw TranscriptionError.recognizerUnavailable
+                ?? (isEnglish ? SFSpeechRecognizer(locale: Locale(identifier: "en-US")) : nil) else {
+            throw isEnglish
+                ? TranscriptionError.recognizerUnavailable
+                : TranscriptionError.localeUnsupported(locale.identifier)
         }
         guard recognizer.isAvailable else {
             throw TranscriptionError.recognizerUnavailable

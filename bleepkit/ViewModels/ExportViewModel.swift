@@ -104,11 +104,20 @@ final class ExportViewModel {
                     }
                 }
             )
-            try Task.checkCancellation()
+            if Task.isCancelled {
+                tempFiles.remove(outputURL)
+                throw CancellationError()
+            }
 
             phase = .saving
             do {
                 try await photoLibraryWriter.saveToAlbum(fileURL: outputURL)
+                if Task.isCancelled {
+                    // The sheet already cleaned up and closed; don't leak
+                    // the render.
+                    tempFiles.remove(outputURL)
+                    throw CancellationError()
+                }
                 phase = .completed(outputURL)
             } catch let error as PhotoLibraryWriter.WriteError {
                 if case .notAuthorized = error {
@@ -117,6 +126,9 @@ final class ExportViewModel {
                     phase = .failed(message: error.localizedDescription)
                     tempFiles.remove(outputURL)
                 }
+            } catch {
+                tempFiles.remove(outputURL)
+                throw error
             }
         } catch is CancellationError {
             phase = .idle
@@ -130,7 +142,8 @@ final class ExportViewModel {
     private func beginBackgroundExportTask() {
         endBackgroundExportTask()
         backgroundTaskID = UIApplication.shared.beginBackgroundTask(withName: "BleepKit Export") { [weak self] in
-            Task { @MainActor in
+            // UIKit requires the task to end before this handler returns.
+            MainActor.assumeIsolated {
                 self?.exportTask?.cancel()
                 self?.endBackgroundExportTask()
             }

@@ -57,7 +57,8 @@ nonisolated enum ExportResolution: String, CaseIterable, Identifiable, Sendable 
         guard displaySize.width > 0, displaySize.height > 0 else {
             return CGSize(width: 1080, height: 1920)
         }
-        let scale = longEdgePixels / max(displaySize.width, displaySize.height)
+        // "Up to": never upscale a smaller source.
+        let scale = min(1, longEdgePixels / max(displaySize.width, displaySize.height))
         return CGSize(
             width: CompositionBuilder.evenDimension(displaySize.width * scale),
             height: CompositionBuilder.evenDimension(displaySize.height * scale)
@@ -197,7 +198,7 @@ extension CompositionBuilder {
             at: .zero
         )
         let instruction = AVMutableVideoCompositionInstruction()
-        instruction.timeRange = CMTimeRange(start: .zero, duration: duration)
+        instruction.timeRange = CMTimeRange(start: .zero, duration: composition.duration)
         instruction.layerInstructions = [layerInstruction]
 
         let videoComposition = AVMutableVideoComposition()
