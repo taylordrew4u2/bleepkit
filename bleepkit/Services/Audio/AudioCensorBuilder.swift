@@ -105,8 +105,13 @@ nonisolated struct AudioCensorBuilder: Sendable {
                     throw BuildError.trackCreationFailed
                 }
                 let beepDuration = try await beepAsset.load(.duration)
+                // Range ends are rounded to 1/600 s and can land just past a
+                // non-600-timescale asset's end; a beep there would stretch
+                // the composition beyond the video instruction.
+                let insertDuration = min(beepDuration, rangeDuration, assetDuration - range.start)
+                guard insertDuration > .zero else { continue }
                 try trackB.insertTimeRange(
-                    CMTimeRange(start: .zero, duration: min(beepDuration, rangeDuration)),
+                    CMTimeRange(start: .zero, duration: insertDuration),
                     of: beepTrack,
                     at: range.start
                 )
@@ -143,11 +148,13 @@ nonisolated struct AudioCensorBuilder: Sendable {
         if rangeSeconds < ramp * 2 {
             ramp = rangeSeconds / 2
         }
-        let rampTime = CMTime.projectSeconds(ramp)
+        // Round down: rounding to nearest can make the two ramps of a very
+        // short range overlap.
+        let rampTime = CMTime(value: CMTimeValue((ramp * 600).rounded(.down)), timescale: 600)
 
         if range.start == .zero {
             parameters.setVolume(0, at: .zero)
-        } else if ramp > 0 {
+        } else if rampTime > .zero {
             parameters.setVolumeRamp(
                 fromStartVolume: 1,
                 toEndVolume: 0,
@@ -159,7 +166,7 @@ nonisolated struct AudioCensorBuilder: Sendable {
         }
 
         guard range.end < assetDuration else { return }
-        if ramp > 0 {
+        if rampTime > .zero {
             parameters.setVolumeRamp(
                 fromStartVolume: 0,
                 toEndVolume: 1,
