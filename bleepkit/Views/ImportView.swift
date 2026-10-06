@@ -147,12 +147,9 @@ private struct ImportIdleView: View {
         }
     }
 
-    /// "2.1 GB free · 3 need review" — the desk's vital signs.
+    /// "3 need review" — the desk's vital signs.
     private var subtitleText: String {
         var parts = [titleText]
-        if let free = Self.freeSpaceText() {
-            parts.append(free)
-        }
         let review = projects.count { project in
             project.tokens.contains { $0.detectedProfane && $0.userOverride == nil }
         }
@@ -160,14 +157,6 @@ private struct ImportIdleView: View {
             parts.append(review == 1 ? "1 needs review" : "\(review) need review")
         }
         return parts.joined(separator: " · ")
-    }
-
-    private static func freeSpaceText() -> String? {
-        let values = try? URL.documentsDirectory.resourceValues(
-            forKeys: [.volumeAvailableCapacityForImportantUsageKey]
-        )
-        guard let capacity = values?.volumeAvailableCapacityForImportantUsage else { return nil }
-        return "\(capacity.formatted(.byteCount(style: .file))) free"
     }
 
     // MARK: Sections

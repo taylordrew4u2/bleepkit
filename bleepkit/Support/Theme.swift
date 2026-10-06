@@ -77,8 +77,6 @@ enum ContentWidth {
     static let dashboard: CGFloat = 700
     /// The style editors' trailing inspector pane.
     static let inspector: CGFloat = 380
-    /// The paywall's centered column.
-    static let paywall: CGFloat = 440
     /// Minimum project-grid tile width — two columns on iPhone,
     /// more as the dashboard column allows.
     static let gridTileMin: CGFloat = 160

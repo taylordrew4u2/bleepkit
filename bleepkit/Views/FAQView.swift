@@ -18,7 +18,7 @@ struct FAQView: View {
     private static let entries: [Entry] = [
         Entry(
             question: "Does my video leave my device?",
-            answer: "No. Importing, transcription, profanity detection, editing, and export all run on this device. The only network feature is the App Store purchase itself."
+            answer: "No. Importing, transcription, profanity detection, editing, and export all run on this device."
         ),
         Entry(
             question: "How are bad words found?",
@@ -37,12 +37,8 @@ struct FAQView: View {
             answer: "The built-in profanity list is English. On devices set to another language, transcription still runs, but automatic detection may not flag words — you can still censor any word by hand."
         ),
         Entry(
-            question: "What's free, and what does Pro unlock?",
-            answer: "Everything is free — import, transcription, detection, captions, censoring, and preview. Free exports render the first 15 seconds; BleepKit Pro (one-time purchase, Family Sharing included) unlocks full-length export."
-        ),
-        Entry(
-            question: "I already bought Pro. How do I get it back?",
-            answer: "Tap Export, then Restore Purchases on the unlock screen. Purchases follow your Apple Account, so a new phone restores the same way."
+            question: "Is BleepKit free?",
+            answer: "Yes. Importing, transcription, profanity detection, editing, captions, preview, and full-length export are all free."
         ),
         Entry(
             question: "Where do exported videos go?",

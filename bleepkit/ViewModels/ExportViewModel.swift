@@ -33,19 +33,15 @@ final class ExportViewModel {
     private let tempFiles: TempFileManager
     private var exportTask: Task<Void, Never>?
     private var backgroundTaskID: UIBackgroundTaskIdentifier = .invalid
-    /// Free-tier cap in seconds; nil exports the full length.
-    let limitSeconds: Double?
     /// Output quality selected before export starts.
     let resolution: ExportResolution
 
     init(
         editor: EditorViewModel,
         environment: AppEnvironment,
-        limitSeconds: Double? = nil,
         resolution: ExportResolution
     ) {
         self.editor = editor
-        self.limitSeconds = limitSeconds
         self.resolution = resolution
         pipeline = ExportPipeline(
             audioCensorBuilder: environment.audioCensorBuilder,
@@ -93,7 +89,7 @@ final class ExportViewModel {
                 ranges: editor.censorRanges,
                 beepSettings: project.beepSettings,
                 resolution: resolution,
-                maxDurationSeconds: limitSeconds,
+                maxDurationSeconds: nil,
                 buildOverlayLayers: { [editor] _, renderSize in
                     // Identical builders to the preview, at the output's
                     // native size.

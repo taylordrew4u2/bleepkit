@@ -56,7 +56,8 @@ nonisolated enum ImportError: LocalizedError {
 }
 
 /// Drives the import flow: copy the video into the sandbox, read its
-/// metadata, extract its audio, and create the `Project` record.
+/// metadata and create the `Project` record. Audio extraction happens once,
+/// when the editor begins transcription.
 @MainActor
 @Observable
 final class ImportViewModel {
@@ -72,21 +73,15 @@ final class ImportViewModel {
     struct ImportedSource {
         let project: Project
         let metadata: SourceVideoMetadata
-        /// Scratch `.m4a`; nil when the video has no audio track.
-        let extractedAudioURL: URL?
     }
 
     private(set) var phase: ImportPhase = .idle
 
     private let projectStore: ProjectStore
-    private let audioExtractor: AudioExtractor
-    private let tempFiles: TempFileManager
     private var importTask: Task<Void, Never>?
 
     init(environment: AppEnvironment) {
         projectStore = environment.projectStore
-        audioExtractor = environment.audioExtractor
-        tempFiles = environment.tempFiles
     }
 
     // MARK: Entry points
@@ -160,7 +155,6 @@ final class ImportViewModel {
     private func performImport(title: String, makeLocalCopy: () async throws -> URL) async {
         var temporaryURL: URL?
         var installedFileName: String?
-        var extractedAudioURL: URL?
         do {
             temporaryURL = try await makeLocalCopy()
             try Task.checkCancellation()
@@ -176,10 +170,6 @@ final class ImportViewModel {
             let metadata = try await SourceVideoMetadata.load(from: sourceURL)
             try Task.checkCancellation()
 
-            phase = .importing(step: "Extracting audio…")
-            extractedAudioURL = try await audioExtractor.extractAudio(from: sourceURL)
-            try Task.checkCancellation()
-
             let project = try projectStore.createProject(
                 title: title,
                 sourceFileName: fileName,
@@ -188,17 +178,16 @@ final class ImportViewModel {
             Logger.importer.info("Imported \(fileName): \(metadata.durationSeconds, format: .fixed(precision: 2))s, \(Int(metadata.naturalSize.width))×\(Int(metadata.naturalSize.height)), \(metadata.nominalFrameRate, format: .fixed(precision: 2)) fps")
             phase = .ready(ImportedSource(
                 project: project,
-                metadata: metadata,
-                extractedAudioURL: extractedAudioURL
+                metadata: metadata
             ))
         } catch is CancellationError {
             cleanUpTemporaryCopy(temporaryURL)
-            cleanUpPartialImport(installedFileName: installedFileName, extractedAudioURL: extractedAudioURL)
+            cleanUpPartialImport(installedFileName: installedFileName)
             Logger.importer.notice("Import canceled")
             phase = .idle
         } catch {
             cleanUpTemporaryCopy(temporaryURL)
-            cleanUpPartialImport(installedFileName: installedFileName, extractedAudioURL: extractedAudioURL)
+            cleanUpPartialImport(installedFileName: installedFileName)
             Logger.importer.error("Import failed: \(error.localizedDescription)")
             phase = .failed(message: error.localizedDescription)
         }
@@ -213,12 +202,9 @@ final class ImportViewModel {
         }
     }
 
-    private func cleanUpPartialImport(installedFileName: String?, extractedAudioURL: URL?) {
+    private func cleanUpPartialImport(installedFileName: String?) {
         if let installedFileName {
             ProjectStore.removeSource(fileName: installedFileName)
-        }
-        if let extractedAudioURL {
-            tempFiles.remove(extractedAudioURL)
         }
     }
 

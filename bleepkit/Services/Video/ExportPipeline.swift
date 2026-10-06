@@ -39,8 +39,7 @@ struct ExportPipeline {
     /// Exports the censored video to a scratch `.mp4` and returns its URL.
     ///
     /// - Parameters:
-    ///   - maxDurationSeconds: When set, only the first this-many seconds
-    ///     are rendered — the free tier's export cap.
+    ///   - maxDurationSeconds: Optional duration cap for callers that need a shortened export.
     ///   - resolution: The output standard, preserving source aspect ratio.
     ///   - buildOverlayLayers: Builds the burn-in trees (overlay below,
     ///     captions on top) for the given asset duration and output size —

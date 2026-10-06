@@ -60,11 +60,6 @@ struct BleepKitApp: App {
             // The Studio Booth direction is dark-only — black surfaces
             // under the bleep-yellow accent, in both system appearances.
             .preferredColorScheme(.dark)
-            .task {
-                if case .success(let environment) = bootstrap {
-                    environment.startStoreObservation()
-                }
-            }
         }
     }
 }

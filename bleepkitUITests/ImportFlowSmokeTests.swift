@@ -49,8 +49,9 @@ final class ImportFlowSmokeTests: XCTestCase {
         if !censoringButton.waitForExistence(timeout: 90) {
             attachScreenshot(app, name: "import-stuck")
             if app.staticTexts["Private Access to Photos"].exists
-                || app.buttons["Close"].exists {
-                throw XCTSkip("Photo library appears empty — seed a video with `xcrun simctl addmedia` before running.")
+                || app.buttons["Close"].exists
+                || app.buttons["Choose from Photos"].exists {
+                throw XCTSkip("The Photos picker did not select a video — seed a video with `xcrun simctl addmedia` before running.")
             }
             XCTFail("Import never reached the editor.")
             return

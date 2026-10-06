@@ -47,10 +47,6 @@ private struct EditorContentView: View {
     @Environment(AppEnvironment.self) private var environment
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @State private var showsExportSheet = false
-    @State private var showsPaywall = false
-    @State private var startExportOnPaywallDismiss = false
-    /// Free-tier cap for the next export; nil exports full length.
-    @State private var exportLimitSeconds: Double?
     /// Which style editor is open, if any. Compact widths present it as
     /// a half-height sheet; regular widths as a trailing inspector so
     /// the video keeps the rest of the screen.
@@ -105,14 +101,7 @@ private struct EditorContentView: View {
                         .accessibilityLabel("Preparing preview for export")
                 } else {
                     Button {
-                        // The paywall moment: after a correct preview, at
-                        // the Export tap — never earlier.
-                        if environment.entitlement.isPro {
-                            exportLimitSeconds = nil
-                            showsExportSheet = true
-                        } else {
-                            showsPaywall = true
-                        }
+                        showsExportSheet = true
                     } label: {
                         Label("Export", systemImage: "square.and.arrow.up")
                     }
@@ -145,26 +134,7 @@ private struct EditorContentView: View {
             }
         }
         .sheet(isPresented: $showsExportSheet) {
-            ExportView(editor: viewModel, limitSeconds: exportLimitSeconds)
-        }
-        // The export sheet opens from onDismiss — presenting it while the
-        // paywall is still animating away would drop the presentation.
-        .sheet(isPresented: $showsPaywall, onDismiss: {
-            if startExportOnPaywallDismiss {
-                startExportOnPaywallDismiss = false
-                showsExportSheet = true
-            }
-        }) {
-            PaywallView { outcome in
-                switch outcome {
-                case .unlocked:
-                    exportLimitSeconds = nil
-                case .freeExport:
-                    exportLimitSeconds = FreeTier.exportLimitSeconds
-                }
-                startExportOnPaywallDismiss = true
-                showsPaywall = false
-            }
+            ExportView(editor: viewModel)
         }
         // Style editing keeps the preview visible and live. Compact
         // widths: a medium-detent sheet with the editor interactive

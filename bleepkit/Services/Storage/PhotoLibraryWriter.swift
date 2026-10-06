@@ -29,9 +29,10 @@ nonisolated struct PhotoLibraryWriter: Sendable {
 
     private static let albumTitle = "BleepKit"
 
-    /// Requests add-only authorization at point of use.
-    static func requestAddAuthorization() async -> PHAuthorizationStatus {
-        await PHPhotoLibrary.requestAuthorization(for: .addOnly)
+    /// Requests read/write authorization at point of use because placing the
+    /// export in a named album requires fetching and modifying collections.
+    static func requestAuthorization() async -> PHAuthorizationStatus {
+        await PHPhotoLibrary.requestAuthorization(for: .readWrite)
     }
 
     /// Saves the video file into the "BleepKit" album.
@@ -40,7 +41,7 @@ nonisolated struct PhotoLibraryWriter: Sendable {
     ///   `WriteError.albumUnavailable` when the album can't be resolved, or
     ///   the underlying Photos error.
     func saveToAlbum(fileURL: URL) async throws {
-        let status = await Self.requestAddAuthorization()
+        let status = await Self.requestAuthorization()
         guard status == .authorized || status == .limited else {
             throw WriteError.notAuthorized
         }
