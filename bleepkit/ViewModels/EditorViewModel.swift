@@ -127,6 +127,17 @@ final class EditorViewModel {
         playerObservation.invalidate()
     }
 
+    /// Stops all in-flight work when the editor is closed. The running tasks
+    /// retain `self`, so without this a closed editor keeps transcribing in
+    /// the background, and reopening the project starts a second run that
+    /// races the first for `project.tokens`.
+    func tearDown() {
+        transcriptionTask?.cancel()
+        previewTask?.cancel()
+        beepRefreshDebounce?.cancel()
+        pausePlayback()
+    }
+
     // MARK: Transcription
 
     /// Shows the cached transcript if one exists — reopening a project never
@@ -522,6 +533,7 @@ final class EditorViewModel {
             if PHPhotoLibrary.authorizationStatus(for: .readWrite) == .notDetermined {
                 _ = await PhotoLibraryWriter.requestAuthorization()
             }
+            try Task.checkCancellation()
             let sourceURL = try ProjectStore.sourceURL(forFileName: project.sourceFileName)
             guard let audioURL = try await audioExtractor.extractAudio(from: sourceURL) else {
                 // Nothing to transcribe or censor, but the video can still be

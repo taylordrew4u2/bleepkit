@@ -11,6 +11,7 @@ struct EditorView: View {
     let project: Project
     @Environment(AppEnvironment.self) private var environment
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.isPresented) private var isPresented
     @State private var viewModel: EditorViewModel?
 
     var body: some View {
@@ -37,6 +38,13 @@ struct EditorView: View {
             // paused the player itself.
             if newPhase != .active {
                 viewModel?.pausePlayback()
+            }
+        }
+        .onDisappear {
+            // Also fires when Transcript is pushed on top; only a pop
+            // (no longer presented) ends the editor.
+            if !isPresented {
+                viewModel?.tearDown()
             }
         }
     }
