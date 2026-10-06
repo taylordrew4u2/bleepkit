@@ -10,6 +10,7 @@ import CoreMedia
 import Foundation
 import Observation
 import OSLog
+import Photos
 import QuartzCore
 
 /// Drives editing of one project: transcription (re-extracting audio when
@@ -513,6 +514,13 @@ final class EditorViewModel {
             }
         }
         do {
+            // Ask for Photos access up front, alongside Speech Recognition, so
+            // both prompts appear right after a video is chosen rather than
+            // interrupting export. Denial doesn't block transcription; saving
+            // re-checks and reports it then.
+            if PHPhotoLibrary.authorizationStatus(for: .readWrite) == .notDetermined {
+                _ = await PhotoLibraryWriter.requestAuthorization()
+            }
             let sourceURL = try ProjectStore.sourceURL(forFileName: project.sourceFileName)
             guard let audioURL = try await audioExtractor.extractAudio(from: sourceURL) else {
                 transcriptionState = .failed(message: "This video has no audio track, so there's nothing to transcribe.")
