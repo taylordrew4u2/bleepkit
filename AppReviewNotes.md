@@ -11,11 +11,11 @@ No account, registration, login, subscription, purchase, or paid content is requ
 No credentials or sample files are required. The reviewer can use any video containing spoken English:
 
 1. Launch BleepKit.
-2. Choose a video from Photos.
-3. Approve Photos and Speech Recognition permissions when prompted.
+2. Choose a video from Photos. The system picker needs no permission.
+3. Approve Speech Recognition when prompted, before transcription starts.
 4. Review the generated transcript and detected words.
 5. Adjust censor and caption settings if desired.
-6. Export the finished video and save it to Photos.
+6. Export the finished video and save it to Photos. Approve Photos access when prompted; the video is saved to a "BleepKit" album.
 
 ## Tested devices
 
@@ -40,12 +40,12 @@ BleepKit does not provide regulated services or bundle protected third-party mat
 Record on the physical iPhone using the latest operating system available for that device. Begin with the app closed, then show:
 
 1. Launching BleepKit.
-2. Choosing a video from Photos.
-3. Photos and Speech Recognition prompts, if permissions have not already been granted.
+2. Choosing a video from Photos (system picker, no permission prompt).
+3. Speech Recognition prompt, if not already granted.
 4. Transcription and profanity detection completing.
 5. Reviewing and manually toggling a detected word.
 6. Changing a censor or caption style.
-7. Exporting and saving the completed video.
+7. Exporting and saving the completed video, including the Photos access prompt if not already granted.
 8. Opening the saved result from the BleepKit album in Photos.
 
 There are no account, purchase, subscription, user-generated-content reporting, or blocking flows.
