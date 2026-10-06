@@ -79,6 +79,10 @@ final class ImportViewModel {
 
     private let projectStore: ProjectStore
     private var importTask: Task<Void, Never>?
+    /// Bumped on every start or cancel so a superseded task, which may finish
+    /// long after cancellation (iCloud downloads ignore it), can't overwrite
+    /// the newer phase.
+    private var importGeneration = 0
 
     init(environment: AppEnvironment) {
         projectStore = environment.projectStore
@@ -135,6 +139,9 @@ final class ImportViewModel {
     /// Cancels an in-flight import; partial files are cleaned up by the task.
     func cancelImport() {
         importTask?.cancel()
+        importTask = nil
+        importGeneration += 1
+        phase = .idle
     }
 
     /// Returns to the idle picker screen.
@@ -146,20 +153,27 @@ final class ImportViewModel {
 
     private func startImport(title: String, makeLocalCopy: @escaping () async throws -> URL) {
         importTask?.cancel()
+        importGeneration += 1
+        let generation = importGeneration
         phase = .importing(step: "Copying video…")
         importTask = Task {
-            await self.performImport(title: title, makeLocalCopy: makeLocalCopy)
+            await self.performImport(title: title, generation: generation, makeLocalCopy: makeLocalCopy)
         }
     }
 
-    private func performImport(title: String, makeLocalCopy: () async throws -> URL) async {
+    private func performImport(
+        title: String,
+        generation: Int,
+        makeLocalCopy: () async throws -> URL
+    ) async {
+        var isCurrent: Bool { generation == importGeneration }
         var temporaryURL: URL?
         var installedFileName: String?
         do {
             temporaryURL = try await makeLocalCopy()
             try Task.checkCancellation()
 
-            phase = .importing(step: "Reading video info…")
+            if isCurrent { phase = .importing(step: "Reading video info…") }
             guard let localCopyURL = temporaryURL else {
                 throw ImportError.unreadableSelection
             }
@@ -169,6 +183,7 @@ final class ImportViewModel {
             let sourceURL = try ProjectStore.sourceURL(forFileName: fileName)
             let metadata = try await SourceVideoMetadata.load(from: sourceURL)
             try Task.checkCancellation()
+            guard isCurrent else { throw CancellationError() }
 
             let project = try projectStore.createProject(
                 title: title,
@@ -184,12 +199,12 @@ final class ImportViewModel {
             cleanUpTemporaryCopy(temporaryURL)
             cleanUpPartialImport(installedFileName: installedFileName)
             Logger.importer.notice("Import canceled")
-            phase = .idle
+            if isCurrent { phase = .idle }
         } catch {
             cleanUpTemporaryCopy(temporaryURL)
             cleanUpPartialImport(installedFileName: installedFileName)
             Logger.importer.error("Import failed: \(error.localizedDescription)")
-            phase = .failed(message: error.localizedDescription)
+            if isCurrent { phase = .failed(message: error.localizedDescription) }
         }
     }
 

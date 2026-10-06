@@ -292,6 +292,7 @@ final class EditorViewModel {
                     toleranceAfter: .zero
                 )
             }
+            try Task.checkCancellation()
             previewRevision += 1
             previewReady = true
         } catch is CancellationError {
@@ -523,7 +524,11 @@ final class EditorViewModel {
             }
             let sourceURL = try ProjectStore.sourceURL(forFileName: project.sourceFileName)
             guard let audioURL = try await audioExtractor.extractAudio(from: sourceURL) else {
-                transcriptionState = .failed(message: "This video has no audio track, so there's nothing to transcribe.")
+                // Nothing to transcribe or censor, but the video can still be
+                // previewed and exported unchanged.
+                engineIdentifier = nil
+                transcriptionState = .ready([])
+                refreshPreview()
                 return
             }
             scratchAudioURL = audioURL
@@ -561,17 +566,22 @@ final class EditorViewModel {
             refreshPreview()
         } catch is CancellationError {
             Logger.transcription.notice("Transcription cancelled")
-            transcriptionState = .idle
+            transcriptionState = project.tokens.isEmpty ? .idle : .ready(project.tokens)
         } catch let error as TranscriptionError {
-            if case .notAuthorized = error {
+            Logger.transcription.error("Transcription failed: \(error.localizedDescription)")
+            if !project.tokens.isEmpty {
+                // A failed re-run must not hide the transcript still on disk.
+                transcriptionState = .ready(project.tokens)
+            } else if case .notAuthorized = error {
                 transcriptionState = .permissionDenied
             } else {
-                Logger.transcription.error("Transcription failed: \(error.localizedDescription)")
                 transcriptionState = .failed(message: error.localizedDescription)
             }
         } catch {
             Logger.transcription.error("Transcription failed: \(error.localizedDescription)")
-            transcriptionState = .failed(message: error.localizedDescription)
+            transcriptionState = project.tokens.isEmpty
+                ? .failed(message: error.localizedDescription)
+                : .ready(project.tokens)
         }
     }
 

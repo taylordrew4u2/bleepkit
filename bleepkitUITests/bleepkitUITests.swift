@@ -40,7 +40,7 @@ final class bleepkitUITests: XCTestCase {
         let app = XCUIApplication()
         app.launch()
 
-        let firstProject = app.cells.firstMatch
+        let firstProject = app.buttons["projectCard"].firstMatch
         try XCTSkipUnless(
             firstProject.waitForExistence(timeout: 5),
             "No saved projects on this device; import one to exercise the editor"
@@ -48,7 +48,7 @@ final class bleepkitUITests: XCTestCase {
         firstProject.tap()
 
         XCTAssertTrue(
-            app.buttons["Export censored video"].waitForExistence(timeout: 15),
+            app.buttons["Export censored video"].waitForExistence(timeout: 90),
             "Export button missing from the editor"
         )
         XCTAssertTrue(

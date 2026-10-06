@@ -105,7 +105,8 @@ private struct EditorContentView: View {
                     } label: {
                         Label("Export", systemImage: "square.and.arrow.up")
                     }
-                    .disabled(!viewModel.previewReady)
+                    // A second sheet can't present over the style sheet.
+                    .disabled(!viewModel.previewReady || compressesForStyleSheet)
                     .accessibilityLabel("Export censored video")
                 }
             }
