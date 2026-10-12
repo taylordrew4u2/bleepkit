@@ -8,12 +8,17 @@ import SwiftUI
 /// The transcript screen: lists every token with its text, timestamp,
 /// censor state, and a per-word override control. Tapping a word seeks the
 /// editor's preview to it. Severity tiers are toggled from the toolbar
-/// (slurs are always censored and cannot be toggled).
+/// (slur detection is always on and cannot be toggled).
 ///
 /// Shares the editor's view model so overrides refresh the preview live.
 struct WordListView: View {
     let viewModel: EditorViewModel
     @State private var showsRetranscribeConfirmation = false
+    @State private var reviewFilter: ReviewFilter = .all
+
+    private enum ReviewFilter: Hashable {
+        case all, censored
+    }
 
     var body: some View {
         content
@@ -74,13 +79,39 @@ struct WordListView: View {
     }
 
     private func filledTokenList(_ tokens: [WordToken]) -> some View {
-        List {
+        let censoredTokens = tokens.filter(\.isCensored)
+        let visibleTokens = reviewFilter == .all ? tokens : censoredTokens
+
+        return List {
             Section {
-                ForEach(tokens) { token in
-                    TokenRow(token: token, viewModel: viewModel)
+                Picker("Review words", selection: $reviewFilter) {
+                    Text("All").tag(ReviewFilter.all)
+                    Text("Censored").tag(ReviewFilter.censored)
+                }
+                .pickerStyle(.segmented)
+            } footer: {
+                Text("Edit a word to correct the transcript. Use its status icon to seek the preview, or its menu to change censoring.")
+            }
+
+            Section {
+                if visibleTokens.isEmpty {
+                    ContentUnavailableView {
+                        Label("No Censored Words", systemImage: "checkmark.circle")
+                    } description: {
+                        Text("No words are censored with the current detection settings and overrides. Review all words to make a manual change.")
+                    } actions: {
+                        Button("Show All Words") {
+                            reviewFilter = .all
+                        }
+                        .buttonStyle(.bordered)
+                    }
+                } else {
+                    ForEach(visibleTokens) { token in
+                        TokenRow(token: token, viewModel: viewModel)
+                    }
                 }
             } header: {
-                Text("\(tokens.count) words · \(tokens.filter(\.isCensored).count) censored")
+                Text("\(tokens.count) words · \(censoredTokens.count) censored")
             } footer: {
                 VStack(alignment: .leading, spacing: Spacing.tight) {
                     if let notice = viewModel.localeNotice {
@@ -98,7 +129,7 @@ struct WordListView: View {
                     Section("Censor severities") {
                         Toggle("Mild (damn, hell…)", isOn: severityBinding(.mild))
                         Toggle("Strong", isOn: severityBinding(.strong))
-                        Label("Slurs: always censored", systemImage: "lock.fill")
+                        Label("Slur detection: always on", systemImage: "lock.fill")
                     }
                     Section {
                         Button("Re-transcribe", systemImage: "arrow.clockwise") {
@@ -169,7 +200,7 @@ private struct TokenRow: View {
     }
 
     var body: some View {
-        HStack(spacing: Spacing.standard) {
+        HStack(alignment: .top, spacing: Spacing.compact) {
             Button {
                 viewModel.seekToToken(token)
             } label: {
@@ -179,11 +210,11 @@ private struct TokenRow: View {
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .accessibilityLabel(token.isCensored ? "Play censored word" : "Play word")
+            .accessibilityLabel(token.isCensored ? "Seek to censored word, \(token.text)" : "Seek to \(token.text)")
             .accessibilityHint("Seeks the preview to this word")
 
-            VStack(alignment: .leading, spacing: Spacing.hairline) {
-                TextField("Word", text: $draftText)
+            VStack(alignment: .leading, spacing: Spacing.tight) {
+                TextField("Word", text: $draftText, axis: .vertical)
                     .fontWeight(token.isCensored ? .semibold : .regular)
                     .foregroundStyle(token.isCensored ? Color.bleepAccent : .primary)
                     .textInputAutocapitalization(.never)
@@ -197,17 +228,12 @@ private struct TokenRow: View {
                         .font(.bleepFineprint)
                         .foregroundStyle(.secondary)
                 }
-            }
-
-            Spacer()
-
-            VStack(alignment: .trailing, spacing: Spacing.hairline) {
-                Text(token.startSeconds.timecodeString)
+                Text("\(token.startSeconds.timecodeString) · \(Int((token.durationSeconds * 1000).rounded())) ms")
                     .font(.bleepTimecode)
-                Text("\(Int((token.durationSeconds * 1000).rounded())) ms")
-                    .font(.bleepFineprintTimecode)
                     .foregroundStyle(.secondary)
+                    .accessibilityLabel("Starts at \(token.startSeconds.timecodeString), duration \(Int((token.durationSeconds * 1000).rounded())) milliseconds")
             }
+            .frame(maxWidth: .infinity, minHeight: TapTarget.minimum, alignment: .leading)
 
             Menu {
                 Picker("Censoring", selection: choiceBinding) {
@@ -222,6 +248,7 @@ private struct TokenRow: View {
                     .contentShape(Rectangle())
             }
             .accessibilityLabel("Censor override for \(token.text)")
+            .accessibilityValue(overrideDescription)
         }
         .onAppear {
             draftText = token.text
@@ -235,6 +262,19 @@ private struct TokenRow: View {
             if !isFocused {
                 commitTextEdit()
             }
+        }
+        .onDisappear {
+            if isEditingText {
+                commitTextEdit()
+            }
+        }
+    }
+
+    private var overrideDescription: String {
+        switch token.userOverride {
+        case nil: "Automatic"
+        case true?: "Always censor"
+        case false?: "Never censor"
         }
     }
 

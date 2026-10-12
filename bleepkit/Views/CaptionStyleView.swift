@@ -10,13 +10,15 @@ import UIKit
 /// refreshes the preview's layer trees; iOS-bundled fonts only.
 struct CaptionStyleView: View {
     let viewModel: EditorViewModel
+    @State private var showsShadowDetails = false
+    @State private var showsBackgroundDetails = false
 
     var body: some View {
         Form {
-            Section("Font") {
+            Section("Typography") {
                 // Pushed-list style so every option can render in its own
                 // typeface — menu pickers ignore per-item fonts.
-                Picker("Family", selection: binding(\.fontFamily)) {
+                Picker("Font", selection: binding(\.fontFamily)) {
                     ForEach(CaptionStyle.FontFamily.allCases, id: \.self) { family in
                         Text(family.displayName)
                             .font(Self.previewFont(for: family))
@@ -53,51 +55,6 @@ struct CaptionStyleView: View {
                 )
             }
 
-            Section("Shadow") {
-                SliderRow(
-                    title: "Opacity",
-                    value: doubleBinding(get: { Double($0.shadowOpacity) }, set: { $0.shadowOpacity = Float($1) }),
-                    range: 0...1,
-                    step: 0.05,
-                    format: { String(format: "%.0f%%", $0 * 100) }
-                )
-                SliderRow(
-                    title: "Radius",
-                    value: doubleBinding(get: { Double($0.shadowRadius) }, set: { $0.shadowRadius = CGFloat($1) }),
-                    range: 0...20,
-                    step: 1,
-                    format: { String(format: "%.0f pt", $0) }
-                )
-            }
-
-            Section("Caption background") {
-                Toggle("Show background", isOn: binding(\.backgroundEnabled))
-                if viewModel.project.captionStyle.backgroundEnabled {
-                    ColorPickerRow(title: "Color", hex: binding(\.backgroundColorHex))
-                    SliderRow(
-                        title: "Opacity",
-                        value: doubleBinding(get: { Double($0.backgroundOpacity) }, set: { $0.backgroundOpacity = Float($1) }),
-                        range: 0...1,
-                        step: 0.05,
-                        format: { String(format: "%.0f%%", $0 * 100) }
-                    )
-                    SliderRow(
-                        title: "Corner radius",
-                        value: doubleBinding(get: { Double($0.backgroundCornerRadius) }, set: { $0.backgroundCornerRadius = CGFloat($1) }),
-                        range: 0...40,
-                        step: 2,
-                        format: { String(format: "%.0f pt", $0) }
-                    )
-                    SliderRow(
-                        title: "Padding",
-                        value: doubleBinding(get: { Double($0.backgroundPadding) }, set: { $0.backgroundPadding = CGFloat($1) }),
-                        range: 0...48,
-                        step: 2,
-                        format: { String(format: "%.0f pt", $0) }
-                    )
-                }
-            }
-
             Section {
                 SliderRow(
                     title: "Vertical position",
@@ -123,6 +80,57 @@ struct CaptionStyleView: View {
                 Text("Layout")
             } footer: {
                 Text("The default position sits below center to clear Instagram's interface.")
+            }
+
+            Section("Caption background") {
+                Toggle("Show background", isOn: binding(\.backgroundEnabled))
+                if viewModel.project.captionStyle.backgroundEnabled {
+                    DisclosureGroup("Background details", isExpanded: $showsBackgroundDetails) {
+                        ColorPickerRow(title: "Color", hex: binding(\.backgroundColorHex))
+                        SliderRow(
+                            title: "Opacity",
+                            value: doubleBinding(get: { Double($0.backgroundOpacity) }, set: { $0.backgroundOpacity = Float($1) }),
+                            range: 0...1,
+                            step: 0.05,
+                            format: { String(format: "%.0f%%", $0 * 100) }
+                        )
+                        SliderRow(
+                            title: "Corner radius",
+                            value: doubleBinding(get: { Double($0.backgroundCornerRadius) }, set: { $0.backgroundCornerRadius = CGFloat($1) }),
+                            range: 0...40,
+                            step: 2,
+                            format: { String(format: "%.0f pt", $0) }
+                        )
+                        SliderRow(
+                            title: "Padding",
+                            value: doubleBinding(get: { Double($0.backgroundPadding) }, set: { $0.backgroundPadding = CGFloat($1) }),
+                            range: 0...48,
+                            step: 2,
+                            format: { String(format: "%.0f pt", $0) }
+                        )
+                    }
+                }
+            }
+
+            Section {
+                DisclosureGroup("Shadow", isExpanded: $showsShadowDetails) {
+                    SliderRow(
+                        title: "Opacity",
+                        value: doubleBinding(get: { Double($0.shadowOpacity) }, set: { $0.shadowOpacity = Float($1) }),
+                        range: 0...1,
+                        step: 0.05,
+                        format: { String(format: "%.0f%%", $0 * 100) }
+                    )
+                    SliderRow(
+                        title: "Radius",
+                        value: doubleBinding(get: { Double($0.shadowRadius) }, set: { $0.shadowRadius = CGFloat($1) }),
+                        range: 0...20,
+                        step: 1,
+                        format: { String(format: "%.0f pt", $0) }
+                    )
+                }
+            } footer: {
+                Text("Style changes update the video preview immediately.")
             }
         }
         .navigationTitle("Caption Style")

@@ -45,6 +45,8 @@ struct ExportPipeline {
     ///     captions on top) for the given asset duration and output size —
     ///     the source's native size, untouched. Must come from the same
     ///     builders as the preview.
+    ///   - renderingStarted: Called on MainActor once the composition, layers,
+    ///     and session are ready, immediately before rendering begins.
     ///   - progress: Receives fraction-complete updates.
     /// - Throws: `ExportError`, `VideoSourceError`, or `CancellationError`.
     ///   Partial output is deleted on failure or cancellation.
@@ -55,8 +57,10 @@ struct ExportPipeline {
         resolution: ExportResolution,
         maxDurationSeconds: Double? = nil,
         buildOverlayLayers: @MainActor (Double, CGSize) -> [CALayer],
+        renderingStarted: @MainActor () -> Void,
         progress: @escaping @MainActor (Double) -> Void
     ) async throws -> URL {
+        try Task.checkCancellation()
         let built = try await CompositionBuilder.makeCensoredComposition(
             sourceURL: sourceURL,
             ranges: ranges,
@@ -103,12 +107,15 @@ struct ExportPipeline {
             Logger.export.info("Free-tier export capped at \(maxDurationSeconds, format: .fixed(precision: 0))s")
         }
 
+        try Task.checkCancellation()
         let outputURL = tempFiles.makeScratchURL(fileExtension: "mp4")
+        renderingStarted()
 
         // Progress consumption must start BEFORE awaiting the export, or
         // the stream yields nothing and progress sits at zero.
         let progressTask = Task {
             for await state in session.states(updateInterval: 0.1) {
+                guard !Task.isCancelled else { return }
                 if case .exporting(let exportProgress) = state {
                     progress(exportProgress.fractionCompleted)
                 }

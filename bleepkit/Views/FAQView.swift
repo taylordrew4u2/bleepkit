@@ -30,7 +30,7 @@ struct FAQView: View {
         ),
         Entry(
             question: "A word's bleep timing looks off. Can I fix it?",
-            answer: "Timing comes from the on-device speech recognizer. Nudge the beep padding in Censoring → Timing to extend the censored span, or re-transcribe from the Transcript screen's options."
+            answer: "Timing comes from the on-device speech recognizer. Nudge the beep padding in Censoring → Advanced timing to extend the censored span, or re-transcribe from the Transcript screen's options."
         ),
         Entry(
             question: "Why are captions and detection English-only?",

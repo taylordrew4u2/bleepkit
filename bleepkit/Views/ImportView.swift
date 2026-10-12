@@ -54,6 +54,7 @@ struct ImportView: View {
 private struct ImportIdleView: View {
     let viewModel: ImportViewModel
     @Environment(AppEnvironment.self) private var environment
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Query(
         filter: #Predicate<Project> { $0.trashedAt == nil },
         sort: \Project.updatedAt,
@@ -66,19 +67,18 @@ private struct ImportIdleView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: Spacing.roomy) {
+                dashboardHeading
                 newProjectControls
                 if let current = projects.first {
                     continueEditingSection(current)
                 }
-                if projects.isEmpty {
-                    firstImportCard
-                } else if projects.count > 1 {
+                if projects.count > 1 {
                     allProjectsSection
                 }
                 privacyFootnote
             }
-            .padding(.horizontal)
-            .padding(.vertical, Spacing.standard)
+            .padding(.horizontal, Spacing.medium)
+            .padding(.vertical, Spacing.roomy)
             // On iPad the dashboard reads as a centered column instead
             // of stretching edge to edge.
             .frame(maxWidth: ContentWidth.dashboard)
@@ -89,21 +89,23 @@ private struct ImportIdleView: View {
         .navigationDestination(for: Project.self) { project in
             EditorView(project: project)
         }
-        .mastheadTagline(subtitleText)
         .toolbar {
-            ToolbarItem(placement: .topBarLeading) {
-                NavigationLink {
-                    FAQView()
-                } label: {
-                    Label("FAQ", systemImage: "questionmark.circle")
-                }
-            }
             ToolbarItem(placement: .topBarTrailing) {
-                NavigationLink {
-                    TrashView()
+                Menu {
+                    NavigationLink {
+                        FAQView()
+                    } label: {
+                        Label("Help & FAQ", systemImage: "questionmark.circle")
+                    }
+                    NavigationLink {
+                        TrashView()
+                    } label: {
+                        Label("Trash", systemImage: "trash")
+                    }
                 } label: {
-                    Label("Trash", systemImage: "trash")
+                    Label("Help & Trash", systemImage: "ellipsis")
                 }
+                .accessibilityLabel("Help & Trash")
             }
         }
         .alert(
@@ -142,6 +144,21 @@ private struct ImportIdleView: View {
 
     // MARK: Header
 
+    private var dashboardHeading: some View {
+        VStack(alignment: .leading, spacing: Spacing.compact) {
+            Text(projects.isEmpty ? "Bleep profanity.\nAdd captions." : "Projects")
+                .font(.bleepMasthead)
+                .accessibilityAddTraits(.isHeader)
+            if !projects.isEmpty {
+                Text(subtitleText)
+                    .font(.bleepDetail)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
     private var titleText: String {
         switch projects.count {
         case 0: return "Projects"
@@ -164,10 +181,9 @@ private struct ImportIdleView: View {
 
     // MARK: Sections
 
-    /// The screen's primary action: a full-width accent pill for Photos,
-    /// with the Files importer as a quieter chip beneath it.
+    /// One primary Photos action, with the Files importer beneath it.
     private var newProjectControls: some View {
-        VStack(spacing: Spacing.standard) {
+        VStack(spacing: Spacing.compact) {
             PhotosPicker(selection: $photosSelection, matching: .videos, preferredItemEncoding: .current) {
                 Label("Choose from Photos", systemImage: "photo.on.rectangle")
                     .font(.bleepEmphasis)
@@ -186,23 +202,20 @@ private struct ImportIdleView: View {
                     .frame(minHeight: TapTarget.minimum)
             }
             .buttonStyle(.plain)
-            .foregroundStyle(.secondary)
+            .foregroundStyle(.primary)
             .frame(maxWidth: .infinity)
         }
     }
 
     private func continueEditingSection(_ project: Project) -> some View {
         VStack(alignment: .leading, spacing: Spacing.compact) {
-            HStack(alignment: .firstTextBaseline) {
+            VStack(alignment: .leading, spacing: Spacing.tight) {
                 Text("Continue editing")
-                    .font(.bleepControlLabel)
-                    .foregroundStyle(.secondary)
-                    .textCase(.uppercase)
-                Spacer()
+                    .font(.bleepEmphasis)
+                    .accessibilityAddTraits(.isHeader)
                 Text("Saved \(project.updatedAt.formatted(.relative(presentation: .named)))")
-                    .font(.bleepFineprint)
+                    .font(.bleepMetadata)
                     .foregroundStyle(.secondary)
-                    .textCase(.uppercase)
             }
             ZStack(alignment: .topTrailing) {
                 // Value-based so the pushed editor survives this card moving
@@ -212,6 +225,7 @@ private struct ImportIdleView: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("projectCard")
+                .accessibilityHint("Opens this project in the editor")
                 .contextMenu {
                     deleteMenuButton(for: project)
                 }
@@ -224,20 +238,13 @@ private struct ImportIdleView: View {
 
     private var allProjectsSection: some View {
         VStack(alignment: .leading, spacing: Spacing.compact) {
-            HStack(alignment: .firstTextBaseline) {
-                Text("All projects")
-                    .font(.bleepControlLabel)
-                    .foregroundStyle(.secondary)
-                    .textCase(.uppercase)
-                Spacer()
-                Text("Recent")
-                    .font(.bleepFineprint)
-                    .foregroundStyle(.secondary)
-            }
+            Text("Earlier projects")
+                .font(.bleepEmphasis)
+                .accessibilityAddTraits(.isHeader)
             LazyVGrid(
-                columns: [GridItem(.adaptive(minimum: ContentWidth.gridTileMin), spacing: Spacing.standard)],
+                columns: projectColumns,
                 alignment: .leading,
-                spacing: Spacing.standard
+                spacing: Spacing.medium
             ) {
                 // The hero above is the newest project; the grid holds the rest.
                 ForEach(Array(projects.dropFirst())) { project in
@@ -249,57 +256,27 @@ private struct ImportIdleView: View {
                         }
                         .buttonStyle(.plain)
                         .accessibilityIdentifier("projectCard")
+                        .accessibilityHint("Opens this project in the editor")
                         .contextMenu {
                             deleteMenuButton(for: project)
                         }
                         projectActionsMenu(for: project)
-                            .padding(Spacing.tight)
+                            .padding(Spacing.compact)
                     }
                 }
             }
         }
     }
 
-    /// Hero-sized invitation shown before the first import.
-    private var firstImportCard: some View {
-        VStack(spacing: Spacing.standard) {
-            PhotosPicker(selection: $photosSelection, matching: .videos, preferredItemEncoding: .current) {
-                VStack(spacing: Spacing.compact) {
-                    Image(systemName: "photo.badge.plus")
-                        .font(.bleepTransportGlyph)
-                        .foregroundStyle(Color.bleepAccent)
-                    Text("Choose your first video")
-                        .font(.bleepEmphasis)
-                    (Text("It gets transcribed and the ")
-                        + Text("████").foregroundStyle(Color.bleepAccent)
-                        + Text(" found for you."))
-                        .font(.bleepMetadata)
-                        .foregroundStyle(.secondary)
-                        .accessibilityLabel("It gets transcribed and the profanity found for you.")
-                }
-                .multilineTextAlignment(.center)
-                .padding(Spacing.medium)
-                .frame(maxWidth: .infinity)
-                .frame(height: ThumbnailSize.heroHeight)
-                .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: Radius.card))
-                .overlay(
-                    RoundedRectangle(cornerRadius: Radius.card)
-                        .strokeBorder(.separator)
-                )
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Choose your first video from Photos")
-
-            Button {
-                showsFileImporter = true
-            } label: {
-                Label("Browse Files Instead", systemImage: "folder")
-                    .font(.bleepControlLabel)
-                    .frame(maxWidth: .infinity, minHeight: TapTarget.minimum)
-            }
-            .buttonStyle(.bordered)
-            .buttonBorderShape(.roundedRectangle(radius: Radius.card))
+    private var projectColumns: [GridItem] {
+        if dynamicTypeSize.isAccessibilitySize {
+            return [GridItem(.flexible(), alignment: .top)]
         }
+        return [GridItem(
+            .adaptive(minimum: ContentWidth.gridTileMin),
+            spacing: Spacing.medium,
+            alignment: .top
+        )]
     }
 
     private var privacyFootnote: some View {
@@ -307,7 +284,7 @@ private struct ImportIdleView: View {
             "Everything happens on this device. Your video never leaves it.",
             systemImage: "lock.iphone"
         )
-        .font(.bleepFineprint)
+        .font(.bleepMetadata)
         .foregroundStyle(.secondary)
         .frame(maxWidth: .infinity)
         .multilineTextAlignment(.center)
@@ -346,53 +323,44 @@ private struct ImportIdleView: View {
     }
 }
 
-/// The most recent project as a full-width card: thumbnail backdrop,
-/// duration chip, bleep stats, and a Resume pill.
+/// The most recent project as a full-width card. Details sit below the
+/// thumbnail so long titles stay readable at larger text sizes.
 private struct ContinueEditingCard: View {
     let project: Project
     /// "1080p · 60fps", loaded from the source video's track.
     @State private var formatText: String?
 
     var body: some View {
-        SourceThumbnailView(
-            fileName: project.sourceFileName,
-            durationSeconds: project.durationSeconds,
-            maxPixels: ThumbnailSize.heroMaxPixels
-        )
-        .frame(maxWidth: .infinity)
-        .frame(height: ThumbnailSize.heroHeight)
-        .overlay {
-            LinearGradient(
-                colors: [.clear, Color.bleepScrim],
-                startPoint: .center,
-                endPoint: .bottom
+        VStack(alignment: .leading, spacing: 0) {
+            SourceThumbnailView(
+                fileName: project.sourceFileName,
+                durationSeconds: project.durationSeconds,
+                maxPixels: ThumbnailSize.heroMaxPixels
             )
-        }
-        .overlay(alignment: .topTrailing) {
-            TimecodeChip(seconds: project.durationSeconds)
-                .padding(Spacing.compact)
-        }
-        .overlay(alignment: .bottom) {
-            HStack(alignment: .bottom, spacing: Spacing.standard) {
-                VStack(alignment: .leading, spacing: Spacing.tight) {
-                    Text(project.title)
-                        .font(.bleepEmphasis)
-                        .foregroundStyle(Color.bleepOnVideo)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.8)
-                    statsLine
-                }
-                Spacer()
-                Label("Resume", systemImage: "play.fill")
+            .frame(maxWidth: .infinity)
+            .frame(height: ThumbnailSize.heroHeight)
+            .overlay(alignment: .topLeading) {
+                TimecodeChip(seconds: project.durationSeconds)
+                    .padding(Spacing.compact)
+            }
+            VStack(alignment: .leading, spacing: Spacing.compact) {
+                Text(project.title)
+                    .font(.bleepEmphasis)
+                    .foregroundStyle(.primary)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+                statsLine
+                    .fixedSize(horizontal: false, vertical: true)
+                Label("Resume editing", systemImage: "arrow.right")
                     .font(.bleepControlLabel)
                     .bold()
-                    .foregroundStyle(Color.bleepOnAccent)
-                    .padding(.horizontal, Spacing.standard)
-                    .padding(.vertical, Spacing.compact)
-                    .background(Color.bleepAccent, in: Capsule())
+                    .foregroundStyle(.primary)
+                    .padding(.top, Spacing.compact)
             }
-            .padding(Spacing.standard)
+            .padding(Spacing.medium)
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
+        .background(Color(.secondarySystemBackground))
         .clipShape(RoundedRectangle(cornerRadius: Radius.card))
         .task(id: project.sourceFileName) {
             formatText = await Self.loadFormat(fileName: project.sourceFileName)
@@ -408,7 +376,6 @@ private struct ContinueEditingCard: View {
             line = Text("Not transcribed yet")
         } else {
             line = Text(bleeps == 1 ? "1 bleep" : "\(bleeps) bleeps")
-                .foregroundStyle(Color.bleepAccent)
             if review > 0 {
                 line = line + Text(" · \(review) to review")
             }
@@ -418,7 +385,7 @@ private struct ContinueEditingCard: View {
         }
         return line
             .font(.bleepMetadata)
-            .foregroundStyle(Color.bleepOnVideo)
+            .foregroundStyle(.secondary)
     }
 
     private nonisolated static func loadFormat(fileName: String) async -> String? {
@@ -431,13 +398,13 @@ private struct ContinueEditingCard: View {
     }
 }
 
-/// One tile in the all-projects grid: thumbnail, bleep-count badge,
-/// duration chip, and the title beneath.
+/// One tile in the earlier-projects grid. Details stay outside the image;
+/// duration sits below the actions menu, avoiding overlap in narrow tiles.
 private struct ProjectGridCard: View {
     let project: Project
 
     var body: some View {
-        VStack(alignment: .leading, spacing: Spacing.tight) {
+        VStack(alignment: .leading, spacing: 0) {
             SourceThumbnailView(
                 fileName: project.sourceFileName,
                 durationSeconds: project.durationSeconds,
@@ -445,35 +412,34 @@ private struct ProjectGridCard: View {
             )
             .frame(maxWidth: .infinity)
             .frame(height: ThumbnailSize.gridHeight)
-            .overlay(alignment: .topLeading) {
-                bleepBadge
-                    .padding(Spacing.tight)
-            }
-            .overlay(alignment: .bottomTrailing) {
+            .overlay(alignment: .bottomLeading) {
                 TimecodeChip(seconds: project.durationSeconds)
-                    .padding(Spacing.tight)
+                    .padding(Spacing.compact)
             }
-            .clipShape(RoundedRectangle(cornerRadius: Radius.card))
-            Text(project.title)
-                .font(.bleepMetadata)
-                .lineLimit(1)
-                .minimumScaleFactor(0.8)
+            VStack(alignment: .leading, spacing: Spacing.tight) {
+                Text(project.title)
+                    .font(.bleepDetail)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(.primary)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+                Text(bleepSummary)
+                    .font(.bleepMetadata)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(Spacing.medium)
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
+        .background(Color(.secondarySystemBackground))
+        .clipShape(RoundedRectangle(cornerRadius: Radius.card))
     }
 
-    @ViewBuilder
-    private var bleepBadge: some View {
-        let bleeps = project.tokens.count(where: \.isCensored)
-        if bleeps > 0 {
-            Text(bleeps == 1 ? "1 BLEEP" : "\(bleeps) BLEEPS")
-                .font(.bleepFineprint)
-                .bold()
-                .foregroundStyle(Color.bleepOnAccent)
-                .padding(.horizontal, Spacing.tight)
-                .padding(.vertical, Spacing.hairline)
-                .background(Color.bleepAccent, in: Capsule())
-                .accessibilityLabel(bleeps == 1 ? "1 bleep" : "\(bleeps) bleeps")
-        }
+    private var bleepSummary: String {
+        let tokens = project.tokens
+        guard !tokens.isEmpty else { return "Not transcribed yet" }
+        let bleeps = tokens.count(where: \.isCensored)
+        return bleeps == 1 ? "1 bleep" : "\(bleeps) bleeps"
     }
 }
 
@@ -488,6 +454,7 @@ private struct TimecodeChip: View {
             .padding(.horizontal, Spacing.tight)
             .padding(.vertical, Spacing.hairline)
             .background(Color.bleepScrim, in: Capsule())
+            .accessibilityLabel("Duration \(seconds.timecodeString)")
     }
 }
 
@@ -535,18 +502,5 @@ private struct SourceThumbnailView: View {
         generator.maximumSize = CGSize(width: maxPixels, height: maxPixels)
         let time = CMTime(seconds: durationSeconds * 0.1, preferredTimescale: 600)
         return try? await generator.image(at: time).image
-    }
-}
-
-private extension View {
-    /// A navigation-bar subtitle under the title, on OS versions that
-    /// can render one; a no-op below iOS 26 and for empty text.
-    @ViewBuilder
-    func mastheadTagline(_ text: String) -> some View {
-        if #available(iOS 26.0, *), !text.isEmpty {
-            navigationSubtitle(text)
-        } else {
-            self
-        }
     }
 }

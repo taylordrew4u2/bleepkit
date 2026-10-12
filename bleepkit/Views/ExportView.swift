@@ -11,6 +11,7 @@ struct ExportView: View {
     let editor: EditorViewModel
     @Environment(AppEnvironment.self) private var environment
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.displayScale) private var displayScale
     @State private var viewModel: ExportViewModel?
     @State private var showsCancelConfirmation = false
     @State private var selectedResolution: ExportResolution = .fullHD
@@ -49,13 +50,15 @@ struct ExportView: View {
             titleVisibility: .visible
         ) {
             Button("Cancel Export", role: .destructive) {
+                guard !isSaving else { return }
                 viewModel?.cancel()
                 viewModel?.cleanUp()
                 dismiss()
             }
+            .disabled(isSaving)
             Button("Continue Exporting", role: .cancel) {}
         } message: {
-            Text("The render so far is discarded.")
+            Text("The current export will be discarded.")
         }
     }
 
@@ -65,7 +68,7 @@ struct ExportView: View {
 
     private var isWorking: Bool {
         switch viewModel?.phase {
-        case .exporting, .saving: true
+        case .preparing, .exporting, .saving: true
         default: false
         }
     }
@@ -83,19 +86,10 @@ struct ExportView: View {
                 }
                 .buttonStyle(.borderedProminent)
             }
+        case .preparing:
+            exportProgress(fraction: nil)
         case .exporting(let fraction):
-            VStack(spacing: Spacing.medium) {
-                ProgressView(value: fraction)
-                    .padding(.horizontal, Spacing.wide)
-                Text("Exporting… \(Int((fraction * 100).rounded()))%")
-                    .font(.bleepEmphasis)
-                    .monospacedDigit()
-                Button("Cancel", role: .cancel) {
-                    showsCancelConfirmation = true
-                }
-                .buttonStyle(.bordered)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            exportProgress(fraction: fraction)
         case .saving:
             LoadingStateView(message: "Saving to Photos…")
         case .completed(let url):
@@ -126,25 +120,38 @@ struct ExportView: View {
     private var exportOptions: some View {
         Form {
             Section {
+                VStack(alignment: .leading, spacing: Spacing.compact) {
+                    Text(editor.project.title)
+                        .font(.bleepEmphasis)
+                        .accessibilityAddTraits(.isHeader)
+                    Text("\(editor.project.durationSeconds.timecodeString) · \(censorSummary) · Up to \(selectedResolution.title)")
+                        .font(.bleepDetail)
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.vertical, Spacing.compact)
+            } header: {
+                Text("Video")
+            }
+
+            Section {
                 Picker("Resolution", selection: $selectedResolution) {
                     ForEach(ExportResolution.allCases) { resolution in
                         Text(resolution.title).tag(resolution)
                     }
                 }
                 .pickerStyle(.segmented)
-
-                Text(selectedResolution.detail)
-                    .font(.bleepMetadata)
-                    .foregroundStyle(.secondary)
             } header: {
-                Text("Output")
+                Text("Resolution")
+            } footer: {
+                Text("\(selectedResolution.detail). Your video's aspect ratio is preserved, and smaller videos keep their original resolution.")
+                    .font(.bleepMetadata)
             }
 
             Section {
                 Button {
                     startExport()
                 } label: {
-                    Label("Export \(selectedResolution.title)", systemImage: "square.and.arrow.up")
+                    Label("Export Video", systemImage: "square.and.arrow.up")
                         .frame(maxWidth: .infinity, minHeight: TapTarget.minimum)
                 }
                 .buttonStyle(.borderedProminent)
@@ -153,11 +160,52 @@ struct ExportView: View {
         }
     }
 
+    private var censorSummary: String {
+        let count = editor.project.tokens.count(where: \.isCensored)
+        return count == 1 ? "1 censored word" : "\(count) censored words"
+    }
+
+    private func exportProgress(fraction: Double?) -> some View {
+        VStack(spacing: Spacing.roomy) {
+            if let fraction {
+                VStack(spacing: Spacing.medium) {
+                    Text("Exporting Video…")
+                        .font(.bleepEmphasis)
+                    ProgressView(value: fraction)
+                        .accessibilityLabel("Export progress")
+                    Text("\(Int((fraction * 100).rounded()))%")
+                        .font(.bleepDetailValue)
+                        .foregroundStyle(.secondary)
+                        .accessibilityHidden(true)
+                }
+            } else {
+                ProgressView()
+                    .controlSize(.large)
+                VStack(spacing: Spacing.compact) {
+                    Text("Preparing Video…")
+                        .font(.bleepEmphasis)
+                    Text("Preparing your audio and visual edits for export.")
+                        .font(.bleepDetail)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            Button("Cancel Export", role: .cancel) {
+                showsCancelConfirmation = true
+            }
+            .buttonStyle(.bordered)
+        }
+        .multilineTextAlignment(.center)
+        .padding(Spacing.wide)
+        .frame(maxWidth: ContentWidth.dashboard)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
     private func startExport() {
         let model = ExportViewModel(
             editor: editor,
             environment: environment,
-            resolution: selectedResolution
+            resolution: selectedResolution,
+            displayScale: displayScale
         )
         viewModel = model
         model.startExport()

@@ -516,6 +516,12 @@ final class EditorViewModel {
         scrub(to: token.startSeconds)
     }
 
+    /// Review follows effective censoring, including manual overrides.
+    func seekToNextCensoredWord() {
+        guard let token = TimelineReview.nextCensoredToken(in: project.tokens, after: currentSeconds) else { return }
+        seekToToken(token)
+    }
+
     // MARK: Transcription flow
 
     private func performTranscription() async {
@@ -536,6 +542,7 @@ final class EditorViewModel {
             try Task.checkCancellation()
             let sourceURL = try ProjectStore.sourceURL(forFileName: project.sourceFileName)
             guard let audioURL = try await audioExtractor.extractAudio(from: sourceURL) else {
+                try Task.checkCancellation()
                 // Nothing to transcribe or censor, but the video can still be
                 // previewed and exported unchanged.
                 engineIdentifier = nil

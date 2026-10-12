@@ -54,6 +54,7 @@ private struct EditorContentView: View {
     let viewModel: EditorViewModel
     @Environment(AppEnvironment.self) private var environment
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var showsExportSheet = false
     /// Which style editor is open, if any. Compact widths present it as
     /// a half-height sheet; regular widths as a trailing inspector so
@@ -97,7 +98,7 @@ private struct EditorContentView: View {
                 .bottom,
                 compressesForStyleSheet ? proxy.size.height * Self.mediumSheetFraction : 0
             )
-            .animation(.easeInOut(duration: 0.25), value: compressesForStyleSheet)
+            .animation(reduceMotion ? nil : .easeInOut(duration: 0.25), value: compressesForStyleSheet)
         }
         .padding(.bottom, Spacing.compact)
         .toolbar {
@@ -171,7 +172,7 @@ private struct EditorContentView: View {
     private func saveErrorBanner(_ message: String) -> some View {
         Label("Changes aren't being saved: \(message)", systemImage: "exclamationmark.triangle.fill")
             .font(.bleepControlLabel)
-            .foregroundStyle(Color.bleepOnVideo) // white-on-accent
+            .foregroundStyle(Color.bleepOnAccent)
             .padding(Spacing.compact)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(Color.bleepAccent, in: RoundedRectangle(cornerRadius: Radius.control))
@@ -190,6 +191,8 @@ private struct EditorContentView: View {
             } label: {
                 Image(systemName: "xmark")
                     .font(.bleepControlLabel)
+                    .frame(minWidth: TapTarget.minimum, minHeight: TapTarget.minimum)
+                    .contentShape(Rectangle())
             }
             .accessibilityLabel("Dismiss language notice")
         }
@@ -316,6 +319,7 @@ private struct EditorContentView: View {
             ScrubberView(
                 currentSeconds: viewModel.currentSeconds,
                 durationSeconds: viewModel.assetDurationSeconds,
+                censorRanges: viewModel.censorRanges,
                 onScrub: { viewModel.scrub(to: $0) }
             )
             .padding(.horizontal)
@@ -349,6 +353,19 @@ private struct EditorContentView: View {
             }
             .font(.bleepTransportGlyph)
             .disabled(!viewModel.previewReady)
+
+            if viewModel.project.tokens.contains(where: \.isCensored) {
+                Button {
+                    viewModel.seekToNextCensoredWord()
+                } label: {
+                    Label("Next bleep", systemImage: "forward.end")
+                        .font(.bleepControlLabel)
+                        .frame(minHeight: TapTarget.minimum)
+                }
+                .buttonStyle(.bordered)
+                .disabled(!viewModel.previewReady)
+                .accessibilityHint("Pauses and moves to the next censored word. Wraps to the first word at the end.")
+            }
 
         }
     }

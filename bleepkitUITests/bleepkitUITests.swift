@@ -31,6 +31,33 @@ final class bleepkitUITests: XCTestCase {
             app.buttons["Import from Files"].exists,
             "Files import button missing"
         )
+        XCTAssertEqual(app.buttons["Choose from Photos"].count, 1, "Photos import should have one clear entry point")
+        XCTAssertEqual(app.buttons["Import from Files"].count, 1, "Files import should have one entry point")
+        let attachment = XCTAttachment(screenshot: app.screenshot())
+        attachment.name = "refined-first-import"
+        attachment.lifetime = .keepAlways
+        add(attachment)
+    }
+
+    @MainActor
+    func testHelpAndTrashRemainReachable() throws {
+        let app = XCUIApplication()
+        app.launch()
+        let menu = app.buttons["Help & Trash"]
+        XCTAssertTrue(menu.waitForExistence(timeout: 10))
+        menu.tap()
+        let help = app.descendants(matching: .any)["Help & FAQ"].firstMatch
+        XCTAssertTrue(help.waitForExistence(timeout: 5))
+        help.tap()
+        XCTAssertTrue(app.navigationBars["FAQ"].waitForExistence(timeout: 5))
+
+        app.navigationBars["FAQ"].buttons.firstMatch.tap()
+        XCTAssertTrue(menu.waitForExistence(timeout: 5))
+        menu.tap()
+        let trash = app.descendants(matching: .any)["Trash"].firstMatch
+        XCTAssertTrue(trash.waitForExistence(timeout: 5))
+        trash.tap()
+        XCTAssertTrue(app.navigationBars["Trash"].waitForExistence(timeout: 5))
     }
 
     /// Opening an existing project reaches the editor with its transport

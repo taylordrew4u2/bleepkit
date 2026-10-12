@@ -57,8 +57,8 @@ struct BleepKitApp: App {
             // at runtime on iOS 26 (verified in the simulator), so every
             // tinted control takes the accent from here.
             .tint(.bleepAccent)
-            // The Studio Booth direction is dark-only — black surfaces
-            // under the bleep-yellow accent, in both system appearances.
+            // Cutting Room keeps a dark video canvas and white controls
+            // in both system appearances.
             .preferredColorScheme(.dark)
         }
     }

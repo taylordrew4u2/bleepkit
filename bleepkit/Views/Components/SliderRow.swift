@@ -16,20 +16,37 @@ struct SliderRow: View {
 
     var body: some View {
         VStack(spacing: Spacing.tight) {
-            HStack {
-                Text(title)
-                Spacer()
-                Text(format(value))
-                    .font(.bleepDetailValue)
-                    .foregroundStyle(.secondary)
+            ViewThatFits(in: .horizontal) {
+                HStack {
+                    Text(title)
+                        .fixedSize()
+                    Spacer()
+                    readout
+                        .fixedSize()
+                }
+                VStack(alignment: .leading, spacing: Spacing.hairline) {
+                    Text(title)
+                    readout
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .fixedSize(horizontal: false, vertical: true)
             }
+            .accessibilityHidden(true)
             if let step {
                 Slider(value: $value, in: range, step: step)
                     .accessibilityLabel(title)
+                    .accessibilityValue(format(value))
             } else {
                 Slider(value: $value, in: range)
                     .accessibilityLabel(title)
+                    .accessibilityValue(format(value))
             }
         }
+    }
+
+    private var readout: some View {
+        Text(format(value))
+            .font(.bleepDetailValue)
+            .foregroundStyle(.secondary)
     }
 }

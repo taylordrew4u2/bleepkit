@@ -34,6 +34,16 @@
             skipped = "NO">
             <BuildableReference
                BuildableIdentifier = "primary"
+               BlueprintIdentifier = "BAA100003030B9BD008137EB"
+               BuildableName = "bleepkitTests.xctest"
+               BlueprintName = "bleepkitTests"
+               ReferencedContainer = "container:bleepkit.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
+         <TestableReference
+            skipped = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
                BlueprintIdentifier = "BA2A02783030B9BD008137EB"
                BuildableName = "bleepkitUITests.xctest"
                BlueprintName = "bleepkitUITests"

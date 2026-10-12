@@ -7,6 +7,13 @@
 	objects = {
 
 /* Begin PBXContainerItemProxy section */
+		BAA100053030B9BD008137EB /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = BABFBCBC302B150E00AB508B /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = BABFBCC3302B150E00AB508B;
+			remoteInfo = bleepkit;
+		};
 		BA2A027F3030B9BD008137EB /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = BABFBCBC302B150E00AB508B /* Project object */;
@@ -17,6 +24,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		BAA100013030B9BD008137EB /* bleepkitTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = bleepkitTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		BA2A02793030B9BD008137EB /* bleepkitUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = bleepkitUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		BABFBCC4302B150E00AB508B /* bleepkit.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = bleepkit.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -53,6 +61,13 @@
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		BAA100033030B9BD008137EB /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		BA2A02763030B9BD008137EB /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -84,6 +99,7 @@
 			isa = PBXGroup;
 			children = (
 				BABFBCC4302B150E00AB508B /* bleepkit.app */,
+				BAA100013030B9BD008137EB /* bleepkitTests.xctest */,
 				BA2A02793030B9BD008137EB /* bleepkitUITests.xctest */,
 			);
 			name = Products;
@@ -92,6 +108,29 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		BAA100003030B9BD008137EB /* bleepkitTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = BAA100073030B9BD008137EB /* Build configuration list for PBXNativeTarget "bleepkitTests" */;
+			buildPhases = (
+				BAA100023030B9BD008137EB /* Sources */,
+				BAA100033030B9BD008137EB /* Frameworks */,
+				BAA100043030B9BD008137EB /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				BAA100063030B9BD008137EB /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				BABFBD21302BEE6100AB508B /* bleepkitTests */,
+			);
+			name = bleepkitTests;
+			packageProductDependencies = (
+			);
+			productName = bleepkitTests;
+			productReference = BAA100013030B9BD008137EB /* bleepkitTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 		BA2A02783030B9BD008137EB /* bleepkitUITests */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = BA2A02813030B9BD008137EB /* Build configuration list for PBXNativeTarget "bleepkitUITests" */;
@@ -147,6 +186,10 @@
 				LastSwiftUpdateCheck = 2660;
 				LastUpgradeCheck = 2660;
 				TargetAttributes = {
+					BAA100003030B9BD008137EB = {
+						CreatedOnToolsVersion = 26.6;
+						TestTargetID = BABFBCC3302B150E00AB508B;
+					};
 					BA2A02783030B9BD008137EB = {
 						CreatedOnToolsVersion = 26.6;
 						TestTargetID = BABFBCC3302B150E00AB508B;
@@ -171,12 +214,20 @@
 			projectRoot = "";
 			targets = (
 				BABFBCC3302B150E00AB508B /* bleepkit */,
+				BAA100003030B9BD008137EB /* bleepkitTests */,
 				BA2A02783030B9BD008137EB /* bleepkitUITests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		BAA100043030B9BD008137EB /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		BA2A02773030B9BD008137EB /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -194,6 +245,13 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		BAA100023030B9BD008137EB /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		BA2A02753030B9BD008137EB /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -211,6 +269,11 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		BAA100063030B9BD008137EB /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = BABFBCC3302B150E00AB508B /* bleepkit */;
+			targetProxy = BAA100053030B9BD008137EB /* PBXContainerItemProxy */;
+		};
 		BA2A02803030B9BD008137EB /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = BABFBCC3302B150E00AB508B /* bleepkit */;
@@ -219,6 +282,69 @@
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
+		BAA100083030B9BD008137EB /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = R44WG942GS;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.6;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = comedy.bleepkitTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = nonisolated;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/bleepkit.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/bleepkit";
+			};
+			name = Debug;
+		};
+		BAA100093030B9BD008137EB /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = R44WG942GS;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.6;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = comedy.bleepkitTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = nonisolated;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/bleepkit.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/bleepkit";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
 		BA2A02823030B9BD008137EB /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -495,6 +621,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		BAA100073030B9BD008137EB /* Build configuration list for PBXNativeTarget "bleepkitTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				BAA100083030B9BD008137EB /* Debug */,
+				BAA100093030B9BD008137EB /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		BA2A02813030B9BD008137EB /* Build configuration list for PBXNativeTarget "bleepkitUITests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

@@ -103,8 +103,8 @@ enum Radius {
 // MARK: - Typography
 
 extension Font {
-    /// Quiet sans — screen titles and result headlines.
-    static let bleepMasthead = Font.system(.title3, weight: .semibold)
+    /// The primary task or library title; follows Dynamic Type.
+    static let bleepMasthead = Font.system(.largeTitle, weight: .semibold)
     /// Emphasized standalone line: loading messages, export percentage.
     static let bleepEmphasis = Font.headline
     /// Supporting prose one step under body.

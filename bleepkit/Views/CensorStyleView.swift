@@ -9,6 +9,8 @@ import SwiftUI
 /// treatment changes rebuild the caption layers.
 struct CensorStyleView: View {
     let viewModel: EditorViewModel
+    @State private var showsWordsToBleep = false
+    @State private var showsTimingDetails = false
 
     /// Emoji offered for the emoji caption treatment (same set as the
     /// overlay stickers).
@@ -40,16 +42,24 @@ struct CensorStyleView: View {
             }
 
             Section {
-                if viewModel.project.tokens.isEmpty {
-                    Text("Transcribe the video to pick words.")
-                        .foregroundStyle(.secondary)
-                } else {
-                    WordChipGrid(viewModel: viewModel)
+                DisclosureGroup(isExpanded: $showsWordsToBleep) {
+                    if viewModel.project.tokens.isEmpty {
+                        Text("Transcribe the video to pick words.")
+                            .foregroundStyle(.secondary)
+                    } else {
+                        WordChipGrid(viewModel: viewModel)
+                        Text("Tap a word to bleep or unbleep it and seek the preview. Timing and automatic-detection controls are in Transcript.")
+                            .font(.bleepMetadata)
+                            .foregroundStyle(.secondary)
+                    }
+                } label: {
+                    VStack(alignment: .leading, spacing: Spacing.hairline) {
+                        Text("Words to bleep")
+                        Text("\(viewModel.project.tokens.filter(\.isCensored).count) censored · \(viewModel.project.tokens.count) words")
+                            .font(.bleepMetadata)
+                            .foregroundStyle(.secondary)
+                    }
                 }
-            } header: {
-                Text("Words to bleep")
-            } footer: {
-                Text("Tap a word to bleep or unbleep it — the preview behind this sheet updates right away. Timing details and automatic-detection controls live in the Transcript.")
             }
 
             Section {
@@ -112,24 +122,25 @@ struct CensorStyleView: View {
             }
 
             Section {
-                SliderRow(
-                    title: "Padding",
-                    value: beepBinding(get: \.paddingSeconds, set: { $0.paddingSeconds = $1 }),
-                    range: 0...0.2,
-                    step: 0.01,
-                    format: { String(format: "%.0f ms", $0 * 1000) }
-                )
-                SliderRow(
-                    title: "Fade length",
-                    value: beepBinding(get: \.rampSeconds, set: { $0.rampSeconds = $1 }),
-                    range: 0.005...0.05,
-                    step: 0.005,
-                    format: { String(format: "%.0f ms", $0 * 1000) }
-                )
-            } header: {
-                Text("Timing")
-            } footer: {
-                Text("Padding extends the censored span on both sides so the start or end of a word never leaks past the beep. 60 ms works for most clips.")
+                DisclosureGroup("Advanced timing", isExpanded: $showsTimingDetails) {
+                    SliderRow(
+                        title: "Padding",
+                        value: beepBinding(get: \.paddingSeconds, set: { $0.paddingSeconds = $1 }),
+                        range: 0...0.2,
+                        step: 0.01,
+                        format: { String(format: "%.0f ms", $0 * 1000) }
+                    )
+                    SliderRow(
+                        title: "Fade length",
+                        value: beepBinding(get: \.rampSeconds, set: { $0.rampSeconds = $1 }),
+                        range: 0.005...0.05,
+                        step: 0.005,
+                        format: { String(format: "%.0f ms", $0 * 1000) }
+                    )
+                    Text("Padding extends the censored span on both sides so the start or end of a word never leaks past the beep. 60 ms works for most clips.")
+                        .font(.bleepMetadata)
+                        .foregroundStyle(.secondary)
+                }
             }
         }
         .navigationTitle("Censoring")
@@ -218,18 +229,25 @@ struct CensorStyleView: View {
 }
 
 /// Every transcript word as a tappable chip: bleeped words are filled
-/// accent capsules, clean words are quiet fills. Tapping toggles the
-/// word's override and seeks the preview to it, so the change is heard
-/// and seen immediately behind the sheet.
+/// accent tiles, clean words are quiet fills. Tapping toggles the
+/// word's override and seeks the preview to it. Playback can be resumed
+/// from the editor after reviewing the change.
 private struct WordChipGrid: View {
     let viewModel: EditorViewModel
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @ScaledMetric(relativeTo: .footnote) private var chipMinWidth: CGFloat = 108
 
-    /// Uniform cell width the adaptive grid packs chips into.
-    private static let chipMinWidth: CGFloat = 84
+    private var columns: [GridItem] {
+        if dynamicTypeSize.isAccessibilitySize {
+            [GridItem(.flexible(), spacing: Spacing.compact)]
+        } else {
+            [GridItem(.adaptive(minimum: chipMinWidth), spacing: Spacing.compact)]
+        }
+    }
 
     var body: some View {
         LazyVGrid(
-            columns: [GridItem(.adaptive(minimum: Self.chipMinWidth), spacing: Spacing.compact)],
+            columns: columns,
             spacing: Spacing.compact
         ) {
             ForEach(viewModel.project.tokens) { token in
@@ -237,22 +255,27 @@ private struct WordChipGrid: View {
                     viewModel.setOverride(forTokenID: token.id, to: !token.isCensored)
                     viewModel.seekToToken(token)
                 } label: {
-                    Text(token.text)
-                        .font(.bleepControlLabel)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.75)
-                        .frame(maxWidth: .infinity, minHeight: TapTarget.minimum)
-                        .foregroundStyle(token.isCensored ? Color.bleepOnAccent : .primary)
-                        .background(
-                            token.isCensored
-                                ? AnyShapeStyle(Color.bleepAccent)
-                                : AnyShapeStyle(.tertiary),
-                            in: Capsule()
-                        )
+                    HStack(alignment: .firstTextBaseline, spacing: Spacing.tight) {
+                        Image(systemName: token.isCensored ? "speaker.slash.fill" : "checkmark.circle")
+                            .accessibilityHidden(true)
+                        Text(token.text)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .font(.bleepControlLabel)
+                    .padding(.horizontal, Spacing.compact)
+                    .padding(.vertical, Spacing.compact)
+                    .frame(maxWidth: .infinity, minHeight: TapTarget.minimum)
+                    .foregroundStyle(token.isCensored ? Color.bleepOnAccent : .primary)
+                    .background(
+                        token.isCensored
+                            ? AnyShapeStyle(Color.bleepAccent)
+                            : AnyShapeStyle(.tertiary),
+                        in: RoundedRectangle(cornerRadius: Radius.card)
+                    )
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(token.isCensored ? "\(token.text), bleeped" : "\(token.text), not bleeped")
-                .accessibilityHint("Toggles the bleep and plays the word")
+                .accessibilityHint("Toggles the bleep and seeks the preview to the word")
             }
         }
         .padding(.vertical, Spacing.tight)
